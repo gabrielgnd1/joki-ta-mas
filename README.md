@@ -3,6 +3,9 @@
 Website pemesanan jasa war tiket konser dengan form 3 langkah, cek pesanan,
 pricelist, dan panel admin untuk verifikasi pembayaran secara manual.
 
+> Baru bergabung atau lanjut mengerjakan proyek ini? Baca
+> **[`HANDOFF.md`](./HANDOFF.md)** — panduan lengkap dalam Bahasa Indonesia.
+
 ## Stack
 
 - **Next.js 16** (App Router, Server Actions) + React 19
