@@ -1,0 +1,76 @@
+@import url("https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Baloo 2", "Plus Jakarta Sans", ui-sans-serif, system-ui,
+    sans-serif;
+  --color-brand: #0284c7;
+  --color-brand-deep: #075985;
+  --color-ink: #082f49;
+  --color-gold: #fbbf24;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply text-slate-900 antialiased;
+    font-family: var(--font-sans);
+    background-color: #0ea5e9;
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.35), transparent 38%),
+      radial-gradient(circle at 88% 0%, rgba(253, 216, 53, 0.28), transparent 30%),
+      radial-gradient(circle at 50% 100%, rgba(2, 132, 199, 0.65), transparent 60%),
+      linear-gradient(180deg, #7dd3fc 0%, #38bdf8 32%, #0ea5e9 68%, #0284c7 100%);
+    background-attachment: fixed;
+  }
+  ::selection {
+    background: #fde68a;
+    color: #082f49;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+  }
+  .card {
+    @apply rounded-2xl border border-white/70 bg-white shadow-[0_18px_45px_-18px_rgba(2,60,100,0.45)];
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-semibold text-slate-600;
+  }
+  .hint {
+    @apply mt-1 text-xs text-slate-500;
+  }
+  .input {
+    @apply w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-200 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-400 px-5 py-3 text-sm font-extrabold text-blue-950 shadow-[0_10px_24px_-10px_rgba(251,191,36,0.9)] transition hover:-translate-y-0.5 hover:bg-amber-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-transparent px-4 py-2.5 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-bold text-red-600 transition hover:bg-red-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-100 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold;
+  }
+  .section-title {
+    @apply border-b border-slate-100 pb-2 text-sm font-extrabold tracking-wide text-slate-800;
+  }
+}
