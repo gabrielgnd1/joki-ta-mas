@@ -45,10 +45,7 @@ Database pengujian sudah dihapus; database baru akan dibuat otomatis saat pertam
 
 - **Node.js 22 atau lebih baru** (dikembangkan di Node 24).
 - npm (sudah termasuk Node).
-- Di Linux/WSL, `better-sqlite3` butuh build tools bila tidak ada prebuilt binary:
-  ```bash
-  sudo apt install -y build-essential python3
-  ```
+- Tidak perlu build tools native; driver database memakai `@libsql/client`.
 
 ### Instalasi
 
@@ -79,7 +76,9 @@ Lihat `.env.example`:
 
 | Variabel | Default | Keterangan |
 | --- | --- | --- |
-| `DATABASE_PATH` | `./data/jokitamas.db` | Lokasi file SQLite |
+| `TURSO_DATABASE_URL` | — | URL database Turso (`libsql://...`) untuk produksi |
+| `TURSO_AUTH_TOKEN` | — | Token akses Turso |
+| `DATABASE_PATH` | `./data/jokitamas.db` | Lokasi file SQLite lokal (dipakai bila URL Turso kosong) |
 | `ADMIN_NAME` | `Admin Jokitamas` | Nama admin pertama (hanya saat DB kosong) |
 | `ADMIN_EMAIL` | `admin@jokitamas.local` | Email admin pertama |
 | `ADMIN_PASSWORD` | `admin123` | Password admin pertama |
@@ -231,7 +230,7 @@ jokitamas/
 
 ## 8. Database
 
-SQLite satu file, diakses lewat `better-sqlite3`. Skema dibuat otomatis di `src/lib/db.ts` saat aplikasi pertama kali menyentuh database.
+Database SQLite/libSQL diakses lewat `@libsql/client`. Lokal memakai file `data/jokitamas.db`; produksi memakai Turso. Skema dan seed dibuat otomatis di `src/lib/db.ts` saat aplikasi pertama kali menyentuh database.
 
 ### Tabel
 
@@ -341,11 +340,34 @@ Belum ada / bisa ditingkatkan:
 
 ## 11. Deploy
 
-Syarat utama: **filesystem persisten**. Jangan deploy ke Vercel/Netlify serverless karena file SQLite akan hilang. Bukti transfer tidak lagi disimpan di server (dikirim via WhatsApp), jadi yang perlu persisten hanya database.
+Database memakai **libSQL** (`@libsql/client`). Di lokal otomatis memakai file
+`data/jokitamas.db`; di produksi gunakan **Turso** supaya bisa jalan di Vercel
+(filesystem Vercel tidak persisten).
 
-Opsi: VPS (Ubuntu), Railway/Fly dengan volume, atau komputer sendiri.
+Env produksi:
 
-Langkah umum:
+```bash
+TURSO_DATABASE_URL=libsql://...
+TURSO_AUTH_TOKEN=...
+ADMIN_NAME=...
+ADMIN_EMAIL=...
+ADMIN_PASSWORD=...
+COOKIE_SECURE=true
+```
+
+Vercel:
+
+1. Import repo di vercel.com/new
+2. Isi env di atas
+3. Deploy
+4. Tambahkan domain di Project → Settings → Domains
+
+Jangan set `DATABASE_PATH` di Vercel.
+
+Alternatif tanpa Turso: VPS/Railway/Fly dengan volume persisten dan
+`DATABASE_PATH=/path/ke/data/jokitamas.db`.
+
+Langkah umum di VPS:
 
 ```bash
 npm ci
@@ -361,8 +383,8 @@ Checklist sebelum live:
 - [ ] Sesuaikan syarat & ketentuan.
 - [ ] Set harga section & event yang benar.
 - [ ] Set `COOKIE_SECURE=true` dan pasang HTTPS.
-- [ ] Backup `data/` secara berkala (cron).
-- [ ] Pastikan folder `data/` bisa ditulis proses Node.
+- [ ] Backup database (Turso dashboard / `turso db shell .dump`, atau folder `data/` bila lokal).
+- [ ] Pastikan koneksi Turso memakai HTTPS dan token valid.
 
 Contoh reverse proxy Nginx (ringkas):
 
@@ -446,19 +468,11 @@ Ada proses lain di port 3000:
 fuser -k 3000/tcp
 ```
 
-**`better-sqlite3` gagal install / `node-gyp` error**
-Install build tools, lalu `npm rebuild better-sqlite3`:
-
-```bash
-sudo apt install -y build-essential python3
-npm rebuild better-sqlite3
-```
-
 **Perubahan env `ADMIN_*` tidak berefek**
 Env hanya dipakai saat tabel `users` kosong. Ubah lewat menu **Tim**, atau reset `data/`.
 
 **Data terlihat "hilang" setelah ganti folder / deploy**
-Biasanya working directory berubah sehingga `./data/jokitamas.db` menunjuk ke lokasi lain. Set `DATABASE_PATH` absolut.
+Di lokal, pastikan `DATABASE_PATH` menunjuk ke file yang benar. Di Vercel, pastikan `TURSO_DATABASE_URL` dan `TURSO_AUTH_TOKEN` terisi — tanpa itu aplikasi memakai file sementara yang hilang.
 
 **Login selalu gagal / balik ke halaman login**
 Cek `COOKIE_SECURE`: kalau `true` tapi diakses lewat HTTP, cookie tidak dikirim. Set `false` untuk development.

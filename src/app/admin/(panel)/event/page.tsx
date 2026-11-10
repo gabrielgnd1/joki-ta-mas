@@ -23,7 +23,7 @@ function toDatetimeLocal(value: string | null): string {
 
 export default async function AdminEventPage() {
   await requireAdmin();
-  const event = getActiveEvent();
+  const event = await getActiveEvent();
 
   if (!event) {
     return (
@@ -33,7 +33,7 @@ export default async function AdminEventPage() {
     );
   }
 
-  const sections = getSections(event.id);
+  const sections = await getSections(event.id);
 
   return (
     <div className="space-y-5">

@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { createClient, type Client } from "@libsql/client";
 import fs from "node:fs";
 import path from "node:path";
 import { hashPassword } from "./password";
@@ -100,88 +100,118 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   announcement: "",
 };
 
-type GlobalDb = typeof globalThis & { __jtmDb?: Database.Database };
+type GlobalDb = typeof globalThis & {
+  __jtmClient?: Client;
+  __jtmInit?: Promise<void>;
+};
 
 function now(): string {
   return new Date().toISOString();
 }
 
-function seed(db: Database.Database) {
-  const insertSetting = db.prepare(
-    "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
-  );
-  const seedSettings = db.transaction(() => {
-    for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
-      insertSetting.run(key, value);
-    }
-  });
-  seedSettings();
-
-  const userCount = (
-    db.prepare("SELECT COUNT(*) AS c FROM users").get() as { c: number }
-  ).c;
-
-  if (userCount === 0) {
-    const email = process.env.ADMIN_EMAIL || "admin@jokitamas.local";
-    const password = process.env.ADMIN_PASSWORD || "admin123";
-    const name = process.env.ADMIN_NAME || "Admin Joki Ta Mas?";
-    db.prepare(
-      "INSERT INTO users (name, email, password_hash, role, active, created_at) VALUES (?, ?, ?, 'admin', 1, ?)",
-    ).run(name, email, hashPassword(password), now());
-  }
-
-  const eventCount = (
-    db.prepare("SELECT COUNT(*) AS c FROM events").get() as { c: number }
-  ).c;
-
-  if (eventCount === 0) {
-    const createEvent = db.transaction(() => {
-      const info = db
-        .prepare(
-          "INSERT INTO events (name, venue, show_at, is_active, max_tickets, created_at) VALUES (?, ?, ?, 1, 4, ?)",
-        )
-        .run(
-          "AYO SENYUMLAH | JKT48 15th Anniversary Concert",
-          "Surabaya",
-          "2026-12-19T18:30:00+07:00",
-          now(),
-        );
-      const eventId = Number(info.lastInsertRowid);
-      const sections: Array<[string, number, number]> = [
-        ["CAT 1", 400000, 0],
-        ["CAT 2", 350000, 1],
-        ["CAT 3", 320000, 1],
-        ["CAT 4", 300000, 1],
-        ["CAT 5", 250000, 1],
-        ["CAT 6", 220000, 1],
-        ["CAT 7", 200000, 1],
-      ];
-      const insertSection = db.prepare(
-        "INSERT INTO sections (event_id, code, price, is_open, sort) VALUES (?, ?, ?, ?, ?)",
-      );
-      sections.forEach(([code, price, isOpen], index) => {
-        insertSection.run(eventId, code, price, isOpen, index);
-      });
-    });
-    createEvent();
-  }
-}
-
-export function getDb(): Database.Database {
+function getClient(): Client {
   const g = globalThis as GlobalDb;
-  if (g.__jtmDb) return g.__jtmDb;
+  if (g.__jtmClient) return g.__jtmClient;
+
+  const remoteUrl =
+    process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL || "";
+
+  if (remoteUrl) {
+    g.__jtmClient = createClient({
+      url: remoteUrl,
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    });
+    return g.__jtmClient;
+  }
 
   const file =
     process.env.DATABASE_PATH ||
     path.join(process.cwd(), "data", "jokitamas.db");
   fs.mkdirSync(path.dirname(file), { recursive: true });
 
-  const db = new Database(file);
-  db.pragma("journal_mode = WAL");
-  db.pragma("foreign_keys = ON");
-  db.exec(SCHEMA);
-  seed(db);
+  g.__jtmClient = createClient({
+    url: `file:${file.replace(/\\/g, "/")}`,
+  });
+  return g.__jtmClient;
+}
 
-  g.__jtmDb = db;
-  return db;
+async function seed(client: Client): Promise<void> {
+  const settingStatements = Object.entries(DEFAULT_SETTINGS).map(
+    ([key, value]) => ({
+      sql: "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
+      args: [key, value],
+    }),
+  );
+  if (settingStatements.length) {
+    await client.batch(settingStatements, "write");
+  }
+
+  const userCountResult = await client.execute(
+    "SELECT COUNT(*) AS c FROM users",
+  );
+  const userCount = Number(userCountResult.rows[0]?.c ?? 0);
+
+  if (userCount === 0) {
+    const email = process.env.ADMIN_EMAIL || "admin@jokitamas.local";
+    const password = process.env.ADMIN_PASSWORD || "admin123";
+    const name = process.env.ADMIN_NAME || "Admin Joki Ta Mas?";
+    await client.execute({
+      sql: "INSERT INTO users (name, email, password_hash, role, active, created_at) VALUES (?, ?, ?, 'admin', 1, ?)",
+      args: [name, email, hashPassword(password), now()],
+    });
+  }
+
+  const eventCountResult = await client.execute(
+    "SELECT COUNT(*) AS c FROM events",
+  );
+  const eventCount = Number(eventCountResult.rows[0]?.c ?? 0);
+
+  if (eventCount === 0) {
+    const eventResult = await client.execute({
+      sql: "INSERT INTO events (name, venue, show_at, is_active, max_tickets, created_at) VALUES (?, ?, ?, 1, 4, ?)",
+      args: [
+        "AYO SENYUMLAH | JKT48 15th Anniversary Concert",
+        "Surabaya",
+        "2026-12-19T18:30:00+07:00",
+        now(),
+      ],
+    });
+    const eventId = Number(eventResult.lastInsertRowid);
+
+    const sections: Array<[string, number, number]> = [
+      ["CAT 1", 400000, 0],
+      ["CAT 2", 350000, 1],
+      ["CAT 3", 320000, 1],
+      ["CAT 4", 300000, 1],
+      ["CAT 5", 250000, 1],
+      ["CAT 6", 220000, 1],
+      ["CAT 7", 200000, 1],
+    ];
+
+    await client.batch(
+      sections.map(([code, price, isOpen], index) => ({
+        sql: "INSERT INTO sections (event_id, code, price, is_open, sort) VALUES (?, ?, ?, ?, ?)",
+        args: [eventId, code, price, isOpen, index],
+      })),
+      "write",
+    );
+  }
+}
+
+async function init(): Promise<void> {
+  const client = getClient();
+  await client.executeMultiple(SCHEMA);
+  await seed(client);
+}
+
+export async function getDb(): Promise<Client> {
+  const g = globalThis as GlobalDb;
+  if (!g.__jtmInit) {
+    g.__jtmInit = init().catch((error) => {
+      g.__jtmInit = undefined;
+      throw error;
+    });
+  }
+  await g.__jtmInit;
+  return getClient();
 }

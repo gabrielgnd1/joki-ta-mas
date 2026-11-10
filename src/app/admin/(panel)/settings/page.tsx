@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage() {
   await requireAdmin();
-  const settings = getSettings();
+  const settings = await getSettings();
 
   return (
     <div className="space-y-5">

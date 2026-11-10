@@ -9,10 +9,10 @@ import { colorForSection } from "@/lib/palette";
 
 export const dynamic = "force-dynamic";
 
-export default function PricelistPage() {
-  const event = getActiveEvent();
-  const settings = getSettings();
-  const sections = event ? getSections(event.id) : [];
+export default async function PricelistPage() {
+  const event = await getActiveEvent();
+  const settings = await getSettings();
+  const sections = event ? await getSections(event.id) : [];
   const palette = sections.map((section, index) =>
     colorForSection(section.code, index),
   );

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { getSettings } from "@/lib/settings";
 
-export function SiteFooter() {
-  const settings = getSettings();
+export async function SiteFooter() {
+  const settings = await getSettings();
   const waNumbers = [settings.wa_number, settings.wa_number_2]
     .map((number) => (number || "").replace(/[^0-9]/g, ""))
     .filter(Boolean);

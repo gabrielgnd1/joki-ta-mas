@@ -26,9 +26,12 @@ export async function loginAction(formData: FormData): Promise<void> {
     redirect("/admin/login?error=ratelimit");
   }
 
-  const user = getDb()
-    .prepare("SELECT * FROM users WHERE email = ? AND active = 1")
-    .get(parsed.data.email) as UserRow | undefined;
+  const db = await getDb();
+  const result = await db.execute({
+    sql: "SELECT * FROM users WHERE email = ? AND active = 1",
+    args: [parsed.data.email],
+  });
+  const user = result.rows[0] as unknown as UserRow | undefined;
 
   if (!user || !verifyPassword(parsed.data.password, user.password_hash)) {
     redirect("/admin/login?error=invalid");

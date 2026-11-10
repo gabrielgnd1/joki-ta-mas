@@ -20,7 +20,7 @@ export default async function LoginPage({
   if (user) redirect("/admin");
 
   const { error } = await searchParams;
-  const settings = getSettings();
+  const settings = await getSettings();
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-100 px-4 py-10">

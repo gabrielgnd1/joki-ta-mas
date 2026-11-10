@@ -2,8 +2,8 @@ import Link from "next/link";
 import { getSettings } from "@/lib/settings";
 import { SiteNavLinks } from "./site-nav-links";
 
-export function SiteHeader() {
-  const settings = getSettings();
+export async function SiteHeader() {
+  const settings = await getSettings();
   return (
     <header className="sticky top-0 z-40 border-b border-white/25 bg-sky-500/35 backdrop-blur-xl">
       <div className="container-page flex h-16 items-center justify-between gap-3">

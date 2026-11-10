@@ -23,8 +23,8 @@ export default async function AdminOrdersPage({
   const status =
     (Array.isArray(params.status) ? params.status[0] : params.status) || "all";
 
-  const stats = getStats();
-  const orders = listOrders({ q, status });
+  const stats = await getStats();
+  const orders = await listOrders({ q, status });
 
   const cards = [
     { label: "Total Pesanan", value: String(stats.total), tone: "text-slate-900" },

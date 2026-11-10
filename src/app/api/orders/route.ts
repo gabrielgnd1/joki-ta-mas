@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const settings = getSettings();
+  const settings = await getSettings();
   if (settings.orders_open !== "1") {
     return NextResponse.json(
       { ok: false, error: "Pemesanan sedang ditutup." },
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { code, total } = createOrder(parsed.data);
+    const { code, total } = await createOrder(parsed.data);
     return NextResponse.json({ ok: true, code, total }, { status: 201 });
   } catch (error) {
     if (error instanceof OrderError) {

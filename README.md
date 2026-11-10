@@ -1,7 +1,7 @@
 # Joki Ta Mas? — Joki War Tiket Konser
 
-Website pemesanan jasa war tiket konser dengan form 3 langkah, cek pesanan,
-pricelist, dan panel admin untuk verifikasi pembayaran secara manual.
+Website pemesanan jasa war tiket konser dengan form 3 langkah, pricelist, dan
+panel admin untuk verifikasi pembayaran secara manual.
 
 > Baru bergabung atau lanjut mengerjakan proyek ini? Baca
 > **[`HANDOFF.md`](./HANDOFF.md)** — panduan lengkap dalam Bahasa Indonesia.
@@ -9,10 +9,10 @@ pricelist, dan panel admin untuk verifikasi pembayaran secara manual.
 ## Stack
 
 - **Next.js 16** (App Router, Server Actions) + React 19
-- **SQLite** via `better-sqlite3` — database berupa satu file di `data/`
+- **SQLite** via `@libsql/client` (libSQL / Turso)
 - **Tailwind CSS 4**
-- Tanpa layanan eksternal: tidak perlu Supabase, tidak perlu VPS khusus untuk
-  mencoba. Cukup Node.js 22+.
+- Lokal: database file di `data/`. Produksi: Turso (gratis) supaya bisa jalan
+  di Vercel. Cukup Node.js 22+.
 
 ## Menjalankan
 
@@ -65,7 +65,7 @@ Lalu buka http://localhost:3000/admin
 
 1. Pemesan mengisi form dan membayar fee joki melalui **QRIS**.
 2. Setelah submit, pemesan mendapat kode pesanan (`JTM-XXXXXX`).
-3. Pemesan transfer, lalu mengirim bukti transfer ke admin lewat WhatsApp.
+3. Pemesan membayar via QRIS, lalu mengirim bukti pembayaran ke admin lewat WhatsApp.
 4. Admin membuka detail pesanan, mencocokkan nominal + tujuan transfer, lalu
    menekan **Verifikasi Pembayaran**. Status menjadi **Pembayaran Valid** dan
    tercatat siapa yang memverifikasi beserta waktunya.
@@ -73,27 +73,39 @@ Lalu buka http://localhost:3000/admin
 
 Tidak ada verifikasi otomatis. Semua perubahan status dilakukan manusia.
 
-## Data & backup
+## Database
 
-Semua data ada di folder `data/`:
+Lokal (tanpa env): otomatis memakai `data/jokitamas.db`.
 
-```
-data/jokitamas.db          # database SQLite
-```
-
-Backup cukup copy folder tersebut. Contoh:
+Produksi: isi env Turso:
 
 ```bash
-tar -czf backup-jokitamas-$(date +%F).tar.gz data/
+TURSO_DATABASE_URL=libsql://...
+TURSO_AUTH_TOKEN=...
 ```
 
-## Catatan deploy
+Skema dan data awal (admin + event contoh) dibuat otomatis saat request
+pertama. Backup database Turso lewat dashboard Turso atau:
 
-- Butuh hosting dengan **filesystem persisten** (VPS, Railway/Fly dengan
-  volume, shared hosting Node, atau komputer sendiri). **Jangan** taruh file
-  SQLite di Vercel/Netlify serverless — datanya hilang.
-- Jalankan di belakang HTTPS, lalu set `COOKIE_SECURE=true` di `.env`.
-- Ganti `ADMIN_PASSWORD` sebelum deploy.
+```bash
+turso db shell jokitamas ".dump" > backup.sql
+```
+
+## Deploy ke Vercel
+
+1. Import repo ini di [vercel.com/new](https://vercel.com/new).
+2. Set environment variables:
+   - `TURSO_DATABASE_URL`
+   - `TURSO_AUTH_TOKEN`
+   - `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`
+   - `COOKIE_SECURE=true`
+3. Deploy.
+4. Tambahkan domain di **Project → Settings → Domains**, lalu atur DNS sesuai
+   instruksi Vercel.
+
+Jangan set `DATABASE_PATH` di Vercel. Filesystem Vercel tidak persisten; semua
+data harus lewat Turso.
+
 - Bukti transfer tidak disimpan di server. Pemesan mengirimkannya ke admin
   lewat WhatsApp, jadi tidak ada file sensitif yang perlu diamankan di hosting.
 

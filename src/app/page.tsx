@@ -11,10 +11,10 @@ import { colorForSection } from "@/lib/palette";
 
 export const dynamic = "force-dynamic";
 
-export default function HomePage() {
-  const event = getActiveEvent();
-  const sections = event ? getSections(event.id) : [];
-  const settings = getSettings();
+export default async function HomePage() {
+  const event = await getActiveEvent();
+  const sections = event ? await getSections(event.id) : [];
+  const settings = await getSettings();
 
   const wizardEvent: WizardEvent | null = event
     ? {

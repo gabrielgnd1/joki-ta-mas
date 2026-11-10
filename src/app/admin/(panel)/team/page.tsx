@@ -25,9 +25,9 @@ export default async function AdminTeamPage({
   const me = await requireAdmin();
   const { error } = await searchParams;
 
-  const users = getDb()
-    .prepare("SELECT * FROM users ORDER BY id ASC")
-    .all() as UserRow[];
+  const db = await getDb();
+  const usersResult = await db.execute("SELECT * FROM users ORDER BY id ASC");
+  const users = usersResult.rows as unknown as UserRow[];
 
   return (
     <div className="space-y-5">

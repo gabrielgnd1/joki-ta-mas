@@ -2,52 +2,66 @@ import { getDb } from "./db";
 import { generateOrderCode } from "./password";
 import type { EventRow, OrderRow, SectionRow } from "./types";
 import type { OrderInput } from "./validation";
+import type { ResultSet } from "@libsql/client";
 
 export class OrderError extends Error {}
 
-export function getActiveEvent(): EventRow | null {
-  return (
-    (getDb()
-      .prepare("SELECT * FROM events WHERE is_active = 1 ORDER BY id DESC LIMIT 1")
-      .get() as EventRow | undefined) ?? null
+function rows<T>(result: ResultSet): T[] {
+  return result.rows as unknown as T[];
+}
+
+function first<T>(result: ResultSet): T | null {
+  return (result.rows[0] as unknown as T) ?? null;
+}
+
+export async function getActiveEvent(): Promise<EventRow | null> {
+  const db = await getDb();
+  return first<EventRow>(
+    await db.execute(
+      "SELECT * FROM events WHERE is_active = 1 ORDER BY id DESC LIMIT 1",
+    ),
   );
 }
 
-export function getEventById(id: number): EventRow | null {
-  return (
-    (getDb().prepare("SELECT * FROM events WHERE id = ?").get(id) as
-      | EventRow
-      | undefined) ?? null
+export async function getEventById(id: number): Promise<EventRow | null> {
+  const db = await getDb();
+  return first<EventRow>(
+    await db.execute({ sql: "SELECT * FROM events WHERE id = ?", args: [id] }),
   );
 }
 
-export function getSections(eventId: number): SectionRow[] {
-  return getDb()
-    .prepare("SELECT * FROM sections WHERE event_id = ? ORDER BY sort, id")
-    .all(eventId) as SectionRow[];
-}
-
-export function getOrderByCode(code: string): OrderRow | null {
-  return (
-    (getDb()
-      .prepare("SELECT * FROM orders WHERE UPPER(code) = UPPER(?)")
-      .get(code.trim()) as OrderRow | undefined) ?? null
+export async function getSections(eventId: number): Promise<SectionRow[]> {
+  const db = await getDb();
+  return rows<SectionRow>(
+    await db.execute({
+      sql: "SELECT * FROM sections WHERE event_id = ? ORDER BY sort, id",
+      args: [eventId],
+    }),
   );
 }
 
-export function getOrderById(id: number): OrderRow | null {
-  return (
-    (getDb().prepare("SELECT * FROM orders WHERE id = ?").get(id) as
-      | OrderRow
-      | undefined) ?? null
+export async function getOrderByCode(code: string): Promise<OrderRow | null> {
+  const db = await getDb();
+  return first<OrderRow>(
+    await db.execute({
+      sql: "SELECT * FROM orders WHERE UPPER(code) = UPPER(?)",
+      args: [code.trim()],
+    }),
   );
 }
 
-export function listOrders(options: {
+export async function getOrderById(id: number): Promise<OrderRow | null> {
+  const db = await getDb();
+  return first<OrderRow>(
+    await db.execute({ sql: "SELECT * FROM orders WHERE id = ?", args: [id] }),
+  );
+}
+
+export async function listOrders(options: {
   q?: string;
   status?: string;
   limit?: number;
-}): OrderRow[] {
+}): Promise<OrderRow[]> {
   const where: string[] = [];
   const params: Array<string | number> = [];
 
@@ -68,10 +82,11 @@ export function listOrders(options: {
   } ORDER BY created_at DESC LIMIT ?`;
   params.push(options.limit ?? 200);
 
-  return getDb().prepare(sql).all(...params) as OrderRow[];
+  const db = await getDb();
+  return rows<OrderRow>(await db.execute({ sql, args: params }));
 }
 
-export function getStats(): {
+export async function getStats(): Promise<{
   total: number;
   pending: number;
   review: number;
@@ -79,10 +94,11 @@ export function getStats(): {
   completed: number;
   cancelled: number;
   revenue: number;
-} {
-  const rows = getDb()
-    .prepare("SELECT status, COUNT(*) AS c, COALESCE(SUM(total), 0) AS sum FROM orders GROUP BY status")
-    .all() as Array<{ status: string; c: number; sum: number }>;
+}> {
+  const db = await getDb();
+  const result = await db.execute(
+    "SELECT status, COUNT(*) AS c, COALESCE(SUM(total), 0) AS sum FROM orders GROUP BY status",
+  );
 
   const stats = {
     total: 0,
@@ -94,34 +110,36 @@ export function getStats(): {
     revenue: 0,
   };
 
-  for (const row of rows) {
-    stats.total += row.c;
-    if (row.status in stats) {
-      stats[row.status as keyof typeof stats] += row.c;
+  for (const row of result.rows) {
+    const count = Number(row.c ?? 0);
+    const status = String(row.status);
+    stats.total += count;
+    if (status in stats) {
+      stats[status as keyof typeof stats] += count;
     }
-    if (row.status === "verified" || row.status === "completed") {
-      stats.revenue += row.sum;
+    if (status === "verified" || status === "completed") {
+      stats.revenue += Number(row.sum ?? 0);
     }
   }
   return stats;
 }
 
-export function createOrder(input: OrderInput): { code: string; total: number } {
-  const db = getDb();
-  const event = getEventById(input.eventId);
+export async function createOrder(
+  input: OrderInput,
+): Promise<{ code: string; total: number }> {
+  const db = await getDb();
+  const event = await getEventById(input.eventId);
   if (!event || !event.is_active) {
     throw new OrderError("Event tidak tersedia atau sudah ditutup.");
   }
 
-  const sections = getSections(event.id);
+  const sections = await getSections(event.id);
   const section = sections.find((s) => s.code === input.sectionCode);
   if (!section) throw new OrderError("Section tidak ditemukan.");
   if (!section.is_open) throw new OrderError("Section tersebut sudah ditutup.");
 
   if (input.qty > event.max_tickets) {
-    throw new OrderError(
-      `Maksimal ${event.max_tickets} tiket per pesanan.`,
-    );
+    throw new OrderError(`Maksimal ${event.max_tickets} tiket per pesanan.`);
   }
 
   const validCodes = new Set(sections.map((s) => s.code));
@@ -132,44 +150,46 @@ export function createOrder(input: OrderInput): { code: string; total: number } 
   const total = section.price * input.qty;
   const now = new Date().toISOString();
 
-  const insert = db.prepare(
-    `INSERT INTO orders (
-      code, event_id, event_name, show_at, ticket_type, section_code,
-      section_price, qty, total, backup_sections, full_name, x_username,
-      email, whatsapp, nik, gender, birth_date, payment_method, note,
-      status, created_at, updated_at
-    ) VALUES (
-      @code, @event_id, @event_name, @show_at, @ticket_type, @section_code,
-      @section_price, @qty, @total, @backup_sections, @full_name, @x_username,
-      @email, @whatsapp, @nik, @gender, @birth_date, @payment_method, @note,
-      'pending', @created_at, @created_at
-    )`,
-  );
+  const sql = `INSERT INTO orders (
+    code, event_id, event_name, show_at, ticket_type, section_code,
+    section_price, qty, total, backup_sections, full_name, x_username,
+    email, whatsapp, nik, gender, birth_date, payment_method, note,
+    status, created_at, updated_at
+  ) VALUES (
+    ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?, ?,
+    'pending', ?, ?
+  )`;
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = generateOrderCode();
     try {
-      insert.run({
-        code,
-        event_id: event.id,
-        event_name: event.name,
-        show_at: event.show_at,
-        ticket_type: input.ticketType,
-        section_code: section.code,
-        section_price: section.price,
-        qty: input.qty,
-        total,
-        backup_sections: JSON.stringify(backups),
-        full_name: input.fullName,
-        x_username: input.xUsername,
-        email: input.email,
-        whatsapp: input.whatsapp,
-        nik: input.nik,
-        gender: input.gender,
-        birth_date: input.birthDate,
-        payment_method: input.paymentMethod,
-        note: input.note ?? "",
-        created_at: now,
+      await db.execute({
+        sql,
+        args: [
+          code,
+          event.id,
+          event.name,
+          event.show_at,
+          input.ticketType,
+          section.code,
+          section.price,
+          input.qty,
+          total,
+          JSON.stringify(backups),
+          input.fullName,
+          input.xUsername,
+          input.email,
+          input.whatsapp,
+          input.nik,
+          input.gender,
+          input.birthDate,
+          input.paymentMethod,
+          input.note ?? "",
+          now,
+          now,
+        ],
       });
       return { code, total };
     } catch (error) {

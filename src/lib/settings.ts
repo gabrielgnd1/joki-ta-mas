@@ -2,29 +2,30 @@ import { DEFAULT_SETTINGS, getDb } from "./db";
 
 export type Settings = Record<string, string>;
 
-export function getSettings(): Settings {
-  const rows = getDb()
-    .prepare("SELECT key, value FROM settings")
-    .all() as Array<{ key: string; value: string }>;
-
+export async function getSettings(): Promise<Settings> {
+  const db = await getDb();
+  const result = await db.execute("SELECT key, value FROM settings");
   const settings: Settings = { ...DEFAULT_SETTINGS };
-  for (const row of rows) settings[row.key] = row.value;
+  for (const row of result.rows) {
+    settings[String(row.key)] = String(row.value ?? "");
+  }
   return settings;
 }
 
-export function getSetting(key: string): string {
-  return getSettings()[key] ?? "";
+export async function getSetting(key: string): Promise<string> {
+  return (await getSettings())[key] ?? "";
 }
 
-export function saveSettings(values: Record<string, string>): void {
-  const db = getDb();
-  const upsert = db.prepare(
-    "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-  );
-  const run = db.transaction(() => {
-    for (const [key, value] of Object.entries(values)) {
-      if (key in DEFAULT_SETTINGS) upsert.run(key, value);
-    }
-  });
-  run();
+export async function saveSettings(
+  values: Record<string, string>,
+): Promise<void> {
+  const db = await getDb();
+  const statements = Object.entries(values)
+    .filter(([key]) => key in DEFAULT_SETTINGS)
+    .map(([key, value]) => ({
+      sql: "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+      args: [key, value],
+    }));
+
+  if (statements.length) await db.batch(statements, "write");
 }

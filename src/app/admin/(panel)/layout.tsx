@@ -12,7 +12,7 @@ export default async function AdminPanelLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
-  const settings = getSettings();
+  const settings = await getSettings();
 
   return (
     <div className="min-h-screen bg-slate-100">

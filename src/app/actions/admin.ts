@@ -24,17 +24,19 @@ export async function updateOrderStatusAction(formData: FormData) {
   if (!Number.isInteger(id) || id <= 0) return;
   if (!ALLOWED_STATUS.includes(status)) return;
 
-  const db = getDb();
+  const db = await getDb();
   const now = new Date().toISOString();
 
   if (status === "verified") {
-    db.prepare(
-      "UPDATE orders SET status = ?, verified_by = ?, verified_at = ?, updated_at = ? WHERE id = ?",
-    ).run(status, user.name, now, now, id);
+    await db.execute({
+      sql: "UPDATE orders SET status = ?, verified_by = ?, verified_at = ?, updated_at = ? WHERE id = ?",
+      args: [status, user.name, now, now, id],
+    });
   } else {
-    db.prepare(
-      "UPDATE orders SET status = ?, updated_at = ? WHERE id = ?",
-    ).run(status, now, id);
+    await db.execute({
+      sql: "UPDATE orders SET status = ?, updated_at = ? WHERE id = ?",
+      args: [status, now, id],
+    });
   }
 
   revalidatePath("/admin");
@@ -50,9 +52,11 @@ export async function saveOrderNoteAction(formData: FormData) {
 
   if (!Number.isInteger(id) || id <= 0) return;
 
-  getDb()
-    .prepare("UPDATE orders SET internal_note = ?, updated_at = ? WHERE id = ?")
-    .run(note, new Date().toISOString(), id);
+  const db = await getDb();
+  await db.execute({
+    sql: "UPDATE orders SET internal_note = ?, updated_at = ? WHERE id = ?",
+    args: [note, new Date().toISOString(), id],
+  });
 
   revalidatePath(`/admin/orders/${id}`);
 }
@@ -81,7 +85,7 @@ export async function saveSettingsAction(formData: FormData) {
   }
   values.orders_open = formData.get("orders_open") ? "1" : "0";
 
-  saveSettings(values);
+  await saveSettings(values);
 
   revalidatePath("/admin/settings");
   revalidatePath("/");
@@ -109,11 +113,11 @@ export async function saveEventAction(formData: FormData) {
 
   if (!Number.isInteger(id) || id <= 0 || !name) return;
 
-  getDb()
-    .prepare(
-      "UPDATE events SET name = ?, venue = ?, show_at = ?, max_tickets = ?, is_active = ? WHERE id = ?",
-    )
-    .run(name, venue || null, toJakartaIso(showAt), maxTickets, isActive, id);
+  const db = await getDb();
+  await db.execute({
+    sql: "UPDATE events SET name = ?, venue = ?, show_at = ?, max_tickets = ?, is_active = ? WHERE id = ?",
+    args: [name, venue || null, toJakartaIso(showAt), maxTickets, isActive, id],
+  });
 
   revalidatePath("/admin/event");
   revalidatePath("/");
@@ -129,9 +133,11 @@ export async function saveSectionAction(formData: FormData) {
 
   if (!Number.isInteger(id) || id <= 0) return;
 
-  getDb()
-    .prepare("UPDATE sections SET price = ?, is_open = ? WHERE id = ?")
-    .run(price, isOpen, id);
+  const db = await getDb();
+  await db.execute({
+    sql: "UPDATE sections SET price = ?, is_open = ? WHERE id = ?",
+    args: [price, isOpen, id],
+  });
 
   revalidatePath("/admin/event");
   revalidatePath("/");
@@ -156,11 +162,11 @@ export async function addUserAction(formData: FormData) {
   }
 
   try {
-    getDb()
-      .prepare(
-        "INSERT INTO users (name, email, password_hash, role, active, created_at) VALUES (?, ?, ?, ?, 1, ?)",
-      )
-      .run(name, email, hashPassword(password), role, new Date().toISOString());
+    const db = await getDb();
+    await db.execute({
+      sql: "INSERT INTO users (name, email, password_hash, role, active, created_at) VALUES (?, ?, ?, ?, 1, ?)",
+      args: [name, email, hashPassword(password), role, new Date().toISOString()],
+    });
   } catch {
     redirect("/admin/team?error=exists");
   }
@@ -176,7 +182,11 @@ export async function toggleUserAction(formData: FormData) {
   if (!Number.isInteger(id) || id <= 0) return;
   if (id === admin.id) redirect("/admin/team?error=self");
 
-  getDb().prepare("UPDATE users SET active = ? WHERE id = ?").run(active, id);
+  const db = await getDb();
+  await db.execute({
+    sql: "UPDATE users SET active = ? WHERE id = ?",
+    args: [active, id],
+  });
   revalidatePath("/admin/team");
 }
 
@@ -192,10 +202,15 @@ export async function resetPasswordAction(formData: FormData) {
     // allow changing own password
   }
 
-  getDb()
-    .prepare("UPDATE users SET password_hash = ? WHERE id = ?")
-    .run(hashPassword(password), id);
+  const db = await getDb();
+  await db.execute({
+    sql: "UPDATE users SET password_hash = ? WHERE id = ?",
+    args: [hashPassword(password), id],
+  });
 
-  getDb().prepare("DELETE FROM sessions WHERE user_id = ?").run(id);
+  await db.execute({
+    sql: "DELETE FROM sessions WHERE user_id = ?",
+    args: [id],
+  });
   revalidatePath("/admin/team");
 }

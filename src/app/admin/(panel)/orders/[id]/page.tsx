@@ -19,7 +19,7 @@ export default async function OrderDetailPage({
 }) {
   await requireUser();
   const { id } = await params;
-  const order = getOrderById(Number(id));
+  const order = await getOrderById(Number(id));
   if (!order) notFound();
 
   const backups = JSON.parse(order.backup_sections || "[]") as string[];
