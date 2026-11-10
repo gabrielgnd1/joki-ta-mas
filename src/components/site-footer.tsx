@@ -3,7 +3,9 @@ import { getSettings } from "@/lib/settings";
 
 export function SiteFooter() {
   const settings = getSettings();
-  const wa = settings.wa_number.replace(/[^0-9]/g, "");
+  const waNumbers = [settings.wa_number, settings.wa_number_2]
+    .map((number) => (number || "").replace(/[^0-9]/g, ""))
+    .filter(Boolean);
   const x = settings.x_username.replace(/^@/, "");
 
   return (
@@ -23,14 +25,17 @@ export function SiteFooter() {
             Kontak &amp; Informasi
           </div>
           <div className="mt-3 flex flex-col gap-2 text-sm">
-            <a
-              href={`https://wa.me/${wa}`}
-              target="_blank"
-              rel="noreferrer"
-              className="font-semibold text-sky-100 hover:text-amber-300"
-            >
-              WhatsApp: +{wa}
-            </a>
+            {waNumbers.map((wa, index) => (
+              <a
+                key={wa}
+                href={`https://wa.me/${wa}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-sky-100 hover:text-amber-300"
+              >
+                WhatsApp{index > 0 ? ` ${index + 1}` : ""}: +{wa}
+              </a>
+            ))}
             <a
               href={`https://x.com/${x}`}
               target="_blank"
@@ -54,7 +59,7 @@ export function SiteFooter() {
             © {new Date().getFullYear()} {settings.site_name}. All rights
             reserved.
           </span>
-          <span>Pembayaran manual: BCA Transfer &amp; GoPay Transfer</span>
+          <span>Pembayaran manual via QRIS · Bukti via WhatsApp</span>
         </div>
       </div>
     </footer>

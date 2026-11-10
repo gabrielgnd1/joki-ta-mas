@@ -25,12 +25,13 @@ export type WizardEvent = {
 
 export type WizardSettings = {
   siteName: string;
-  bankName: string;
-  bankAccount: string;
-  bankHolder: string;
-  gopayNumber: string;
-  gopayHolder: string;
+  qrisMerchant: string;
+  qrisNmid: string;
+  qrisImage: string;
+  qrisNote: string;
   waNumber: string;
+  waNumber2?: string;
+  xUsername?: string;
   terms: string;
 };
 
@@ -42,7 +43,6 @@ type FormState = {
   nik: string;
   gender: string;
   birthDate: string;
-  paymentMethod: "BCA" | "GOPAY";
   note: string;
   website: string;
 };
@@ -55,7 +55,6 @@ const initialForm: FormState = {
   nik: "",
   gender: "",
   birthDate: "",
-  paymentMethod: "BCA",
   note: "",
   website: "",
 };
@@ -163,7 +162,7 @@ export function OrderWizard({
           nik: form.nik,
           gender: form.gender,
           birthDate: form.birthDate,
-          paymentMethod: form.paymentMethod,
+          paymentMethod: "QRIS",
           note: form.note,
           website: form.website,
         }),
@@ -615,30 +614,11 @@ export function OrderWizard({
                   </div>
 
                   <div className="sm:col-span-2">
-                    <span className="label">Metode Pembayaran Fee Joki *</span>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <PaymentOption
-                        selected={form.paymentMethod === "BCA"}
-                        onSelect={() => update("paymentMethod", "BCA")}
-                        title="Transfer BCA"
-                        subtitle={settings.bankAccount}
-                        note={`${settings.bankName} a.n. ${settings.bankHolder}`}
-                        accent="#0060af"
-                        initials="BCA"
-                      />
-                      <PaymentOption
-                        selected={form.paymentMethod === "GOPAY"}
-                        onSelect={() => update("paymentMethod", "GOPAY")}
-                        title="Transfer GoPay"
-                        subtitle={settings.gopayNumber}
-                        note={`GoPay a.n. ${settings.gopayHolder}`}
-                        accent="#00aed6"
-                        initials="GO"
-                      />
-                    </div>
+                    <span className="label">Pembayaran via QRIS *</span>
+                    <QrisCard settings={settings} />
                     <p className="hint">
-                      Pembayaran diverifikasi manual oleh admin. Instruksi
-                      lengkap muncul setelah pesanan dikirim.
+                      Pembayaran diverifikasi manual oleh admin. Setelah bayar,
+                      kirim bukti pembayaran ke admin lewat WhatsApp.
                     </p>
                   </div>
 
@@ -866,7 +846,7 @@ function SummaryCard({
       </div>
 
       <div className="mt-3 space-y-1.5">
-        {["Pilih section", "Isi data diri", "Upload bukti transfer"].map(
+        {["Pilih section", "Isi data diri", "Kirim bukti transfer"].map(
           (label, index) => {
             const done = step > index + 1;
             return (
@@ -896,60 +876,67 @@ function SummaryCard({
   );
 }
 
-function PaymentOption({
-  selected,
-  onSelect,
-  title,
-  subtitle,
-  note,
-  accent,
-  initials,
+function QrisCard({
+  settings,
+  compact = false,
 }: {
-  selected: boolean;
-  onSelect: () => void;
-  title: string;
-  subtitle: string;
-  note: string;
-  accent: string;
-  initials: string;
+  settings: WizardSettings;
+  compact?: boolean;
 }) {
+  const [failed, setFailed] = useState(false);
+  const src = settings.qrisImage?.trim();
+
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={[
-        "rounded-2xl border-2 p-4 text-left transition",
-        selected
-          ? "border-sky-500 bg-sky-50/60 shadow-sm"
-          : "border-slate-200 bg-white hover:border-slate-300",
-      ].join(" ")}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[10px] font-extrabold text-white"
-            style={{ backgroundColor: accent }}
-          >
-            {initials}
-          </span>
-          <span className="text-sm font-extrabold text-slate-900">{title}</span>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-md bg-slate-900 px-2 py-0.5 text-[10px] font-extrabold tracking-wider text-white uppercase">
+              QRIS
+            </span>
+            <span className="text-sm font-extrabold text-slate-900">
+              {settings.qrisMerchant}
+            </span>
+          </div>
+          <div className="mt-1 font-mono text-[11px] text-slate-500">
+            NMID {settings.qrisNmid}
+          </div>
         </div>
-        <span
-          className={[
-            "flex h-5 w-5 items-center justify-center rounded-full border-2 text-[10px] font-bold",
-            selected
-              ? "border-sky-500 bg-sky-500 text-white"
-              : "border-slate-300 text-transparent",
-          ].join(" ")}
-        >
-          ✓
+        <span className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
+          Satu QRIS untuk semua
         </span>
       </div>
-      <div className="mt-2 font-mono text-sm font-bold text-slate-800">
-        {subtitle}
+
+      <div className="mt-3 flex justify-center">
+        {src && !failed ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            alt={`QRIS ${settings.qrisMerchant}`}
+            onError={() => setFailed(true)}
+            className={
+              compact
+                ? "h-44 w-44 object-contain"
+                : "h-56 w-56 object-contain sm:h-64 sm:w-64"
+            }
+          />
+        ) : (
+          <div className="flex h-56 w-56 flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-5 text-center text-xs text-slate-500">
+            <span className="text-2xl">▦</span>
+            <span className="mt-2 font-semibold text-slate-700">
+              Gambar QRIS belum tersedia
+            </span>
+            <span className="mt-1">
+              Hubungi admin lewat WhatsApp untuk pembayaran.
+            </span>
+          </div>
+        )}
       </div>
-      <div className="text-xs text-slate-500">{note}</div>
-    </button>
+
+      <p className="mt-2 text-center text-[11px] leading-relaxed text-slate-500">
+        {settings.qrisNote}
+      </p>
+    </div>
   );
 }
 
@@ -1025,7 +1012,7 @@ function SuccessModal({
               Pesanan Terkirim!
             </h2>
             <p className="mt-1 text-xs text-white/85">
-              Simpan kode ini untuk cek status dan unggah bukti transfer.
+              Simpan kode ini. Kirim bukti transfer ke admin lewat WhatsApp.
             </p>
           </div>
         </div>
@@ -1058,33 +1045,12 @@ function SuccessModal({
             </span>
           </div>
 
-          <div className="mt-4 space-y-2 text-sm">
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0060af] text-[10px] font-extrabold text-white">
-                BCA
-              </span>
-              <div>
-                <div className="font-mono text-sm font-bold text-slate-900">
-                  {settings.bankAccount}
-                </div>
-                <div className="text-xs text-slate-500">
-                  {settings.bankName} a.n. {settings.bankHolder}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#00aed6] text-[10px] font-extrabold text-white">
-                GO
-              </span>
-              <div>
-                <div className="font-mono text-sm font-bold text-slate-900">
-                  {settings.gopayNumber}
-                </div>
-                <div className="text-xs text-slate-500">
-                  GoPay a.n. {settings.gopayHolder}
-                </div>
-              </div>
-            </div>
+          <p className="mt-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-center text-sm font-semibold text-sky-900">
+            Terima Kasih Sudah pesan, jangan lupa Ayo Senyumlah disuruh Trisha
+          </p>
+
+          <div className="mt-4">
+            <QrisCard settings={settings} compact />
           </div>
 
           <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
@@ -1092,23 +1058,47 @@ function SuccessModal({
           </p>
 
           <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-            <Link
-              href={`/cek?code=${encodeURIComponent(code)}`}
-              className="btn-primary flex-1"
-            >
-              Cek &amp; Unggah Bukti
-            </Link>
             <a
               href={`https://wa.me/${settings.waNumber}?text=${encodeURIComponent(
-                `Halo admin, saya sudah memesan joki tiket dengan kode ${code}.`,
+                `Halo admin, saya mau kirim bukti transfer untuk pesanan ${code}.`,
               )}`}
               target="_blank"
               rel="noreferrer"
-              className="btn-secondary flex-1"
+              className="btn-primary flex-1"
             >
-              Hubungi Admin
+              Kirim Bukti via WhatsApp
             </a>
+            <Link href="/" className="btn-secondary flex-1">
+              Buat Pesanan Baru
+            </Link>
           </div>
+
+          {settings.waNumber2 && (
+            <p className="mt-3 text-center text-[11px] text-slate-500">
+              Nomor cadangan:{" "}
+              <a
+                href={`https://wa.me/${settings.waNumber2}?text=${encodeURIComponent(
+                  `Halo admin, saya mau kirim bukti transfer untuk pesanan ${code}.`,
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-sky-700 hover:underline"
+              >
+                +{settings.waNumber2}
+              </a>
+            </p>
+          )}
+
+          {settings.xUsername && (
+            <a
+              href={`https://x.com/${settings.xUsername}`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-secondary mt-3 w-full"
+            >
+              𝕏 Hubungi Admin via X (@{settings.xUsername})
+            </a>
+          )}
         </div>
       </div>
     </div>

@@ -64,8 +64,6 @@ CREATE TABLE IF NOT EXISTS orders (
   payment_method TEXT NOT NULL,
   note TEXT,
   status TEXT NOT NULL DEFAULT 'pending',
-  proof_file TEXT,
-  proof_uploaded_at TEXT,
   verified_by TEXT,
   verified_at TEXT,
   internal_note TEXT,
@@ -84,19 +82,20 @@ CREATE TABLE IF NOT EXISTS settings (
 `;
 
 export const DEFAULT_SETTINGS: Record<string, string> = {
-  site_name: "JOKITAMAS",
+  site_name: "Joki Ta Mas?",
   site_tagline: "Joki War Tiket Konser",
-  wa_number: "6281234567890",
-  x_username: "jokitamas",
-  bank_name: "BCA",
-  bank_account: "1234567890",
-  bank_holder: "Nama Pemilik Rekening",
-  gopay_number: "08123456789",
-  gopay_holder: "Nama Pemilik GoPay",
+  wa_number: "6281232559486",
+  wa_number_2: "6281216339241",
+  x_username: "tidak_berubah",
+  qris_merchant: "Aryan Store",
+  qris_nmid: "ID1025405000338",
+  qris_image: "/qris.jpg",
+  qris_note:
+    "Scan dengan aplikasi pembayaran apa pun yang mendukung QRIS.",
   payment_note:
-    "Transfer sesuai total tagihan, lalu unggah bukti transfer di halaman Cek Pesanan. Admin akan memverifikasi secara manual.",
+    "Bayar sesuai total tagihan melalui QRIS, lalu kirim bukti pembayaran ke admin melalui WhatsApp. Admin akan memverifikasi secara manual.",
   terms:
-    "Pastikan data identitas (Nama, NIK, No HP) sesuai dengan KTP/ID asli pemegang tiket.\nSiapkan saldo pada metode pembayaran yang dipilih saat war tiket berlangsung.\nJangan double joki untuk pesanan tiket yang sama.\nPembayaran fee joki diverifikasi manual oleh admin.",
+    "Pastikan data identitas (Nama, NIK, No HP) sesuai dengan KTP/ID asli pemegang tiket.\nSiapkan saldo pada aplikasi pembayaran yang mendukung QRIS saat war tiket berlangsung.\nJangan double joki untuk pesanan tiket yang sama.\nPembayaran fee joki diverifikasi manual oleh admin.",
   orders_open: "1",
   announcement: "",
 };
@@ -125,7 +124,7 @@ function seed(db: Database.Database) {
   if (userCount === 0) {
     const email = process.env.ADMIN_EMAIL || "admin@jokitamas.local";
     const password = process.env.ADMIN_PASSWORD || "admin123";
-    const name = process.env.ADMIN_NAME || "Admin Jokitamas";
+    const name = process.env.ADMIN_NAME || "Admin Joki Ta Mas?";
     db.prepare(
       "INSERT INTO users (name, email, password_hash, role, active, created_at) VALUES (?, ?, ?, 'admin', 1, ?)",
     ).run(name, email, hashPassword(password), now());
@@ -143,7 +142,7 @@ function seed(db: Database.Database) {
         )
         .run(
           "AYO SENYUMLAH | JKT48 15th Anniversary Concert",
-          "Jakarta",
+          "Surabaya",
           "2026-12-19T18:30:00+07:00",
           now(),
         );
@@ -185,10 +184,4 @@ export function getDb(): Database.Database {
 
   g.__jtmDb = db;
   return db;
-}
-
-export function getUploadsDir(): string {
-  const dir = path.join(process.cwd(), "data", "uploads");
-  fs.mkdirSync(dir, { recursive: true });
-  return dir;
 }

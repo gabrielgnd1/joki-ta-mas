@@ -15,7 +15,7 @@ export default async function AdminSettingsPage() {
           Pembayaran &amp; Pengaturan
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Rekening tujuan transfer dan informasi yang tampil ke pemesan.
+Informasi pembayaran QRIS dan pengaturan yang tampil ke pemesan.
         </p>
       </div>
 
@@ -54,61 +54,55 @@ export default async function AdminSettingsPage() {
         </div>
 
         <div className="card p-5">
-          <h2 className="section-title">Rekening Pembayaran</h2>
+          <h2 className="section-title">Pembayaran QRIS</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="label" htmlFor="bank_name">
-                Nama Bank
+              <label className="label" htmlFor="qris_merchant">
+                Nama Merchant QRIS
               </label>
               <input
-                id="bank_name"
-                name="bank_name"
-                defaultValue={settings.bank_name}
+                id="qris_merchant"
+                name="qris_merchant"
+                defaultValue={settings.qris_merchant}
                 className="input"
               />
             </div>
             <div>
-              <label className="label" htmlFor="bank_account">
-                Nomor Rekening BCA
+              <label className="label" htmlFor="qris_nmid">
+                NMID QRIS
               </label>
               <input
-                id="bank_account"
-                name="bank_account"
-                defaultValue={settings.bank_account}
+                id="qris_nmid"
+                name="qris_nmid"
+                defaultValue={settings.qris_nmid}
                 className="input font-mono"
               />
             </div>
-            <div>
-              <label className="label" htmlFor="bank_holder">
-                Nama Pemilik Rekening
+            <div className="sm:col-span-2">
+              <label className="label" htmlFor="qris_image">
+                Gambar QRIS (path atau URL)
               </label>
               <input
-                id="bank_holder"
-                name="bank_holder"
-                defaultValue={settings.bank_holder}
-                className="input"
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="gopay_number">
-                Nomor GoPay
-              </label>
-              <input
-                id="gopay_number"
-                name="gopay_number"
-                defaultValue={settings.gopay_number}
+                id="qris_image"
+                name="qris_image"
+                defaultValue={settings.qris_image}
                 className="input font-mono"
+                placeholder="/qris.jpg atau https://..."
               />
+              <p className="hint">
+                Letakkan file di <code>public/qris.jpg</code> atau isi dengan URL
+                gambar QRIS.
+              </p>
             </div>
-            <div>
-              <label className="label" htmlFor="gopay_holder">
-                Nama Pemilik GoPay
+            <div className="sm:col-span-2">
+              <label className="label" htmlFor="qris_note">
+                Catatan QRIS
               </label>
-              <input
-                id="gopay_holder"
-                name="gopay_holder"
-                defaultValue={settings.gopay_holder}
-                className="input"
+              <textarea
+                id="qris_note"
+                name="qris_note"
+                defaultValue={settings.qris_note}
+                className="input min-h-20"
               />
             </div>
             <div className="sm:col-span-2">
@@ -158,6 +152,18 @@ export default async function AdminSettingsPage() {
                 id="wa_number"
                 name="wa_number"
                 defaultValue={settings.wa_number}
+                className="input font-mono"
+                placeholder="628xxxxxxxxxx"
+              />
+            </div>
+            <div>
+              <label className="label" htmlFor="wa_number_2">
+                Nomor WhatsApp Cadangan (opsional)
+              </label>
+              <input
+                id="wa_number_2"
+                name="wa_number_2"
+                defaultValue={settings.wa_number_2 || ""}
                 className="input font-mono"
                 placeholder="628xxxxxxxxxx"
               />

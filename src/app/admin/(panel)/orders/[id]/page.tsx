@@ -23,9 +23,6 @@ export default async function OrderDetailPage({
   if (!order) notFound();
 
   const backups = JSON.parse(order.backup_sections || "[]") as string[];
-  const proofExt = order.proof_file?.split(".").pop()?.toLowerCase() || "";
-  const isImage = ["jpg", "jpeg", "png", "webp"].includes(proofExt);
-  const proofUrl = `/api/proof/${encodeURIComponent(order.code)}`;
 
   return (
     <div className="space-y-4">
@@ -105,41 +102,10 @@ export default async function OrderDetailPage({
 
           <div className="card p-5">
             <h2 className="section-title">Bukti Transfer</h2>
-            {order.proof_file ? (
-              <div className="mt-3 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-                  <span>
-                    Diunggah {formatDateTime(order.proof_uploaded_at)}
-                  </span>
-                  <a
-                    href={proofUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-semibold text-sky-700 hover:underline"
-                  >
-                    Buka file asli →
-                  </a>
-                </div>
-                {isImage ? (
-                  <a href={proofUrl} target="_blank" rel="noreferrer">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={proofUrl}
-                      alt="Bukti transfer"
-                      className="max-h-[420px] w-auto rounded-lg border border-slate-200 object-contain"
-                    />
-                  </a>
-                ) : (
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                    File PDF. Klik “Buka file asli” untuk melihat.
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="mt-2 text-sm text-slate-500">
-                Pemesan belum mengunggah bukti transfer.
-              </p>
-            )}
+            <p className="mt-2 text-sm text-slate-500">
+              Bukti transfer dikirim pemesan ke admin melalui WhatsApp. Cocokkan
+              nominal dan tujuan transfer sebelum menekan tombol verifikasi.
+            </p>
           </div>
 
           <div className="card p-5">
@@ -165,8 +131,9 @@ export default async function OrderDetailPage({
           <div className="card p-5">
             <h2 className="section-title">Verifikasi Manual</h2>
             <p className="mt-2 text-xs leading-relaxed text-slate-500">
-              Cocokkan nominal dan tujuan transfer dengan bukti di samping.
-              Status berubah hanya setelah tombol di bawah ditekan.
+              Cocokkan nominal dan tujuan transfer dengan bukti yang dikirim
+              pemesan via WhatsApp. Status berubah hanya setelah tombol di bawah
+              ditekan.
             </p>
 
             <div className="mt-4 space-y-2">

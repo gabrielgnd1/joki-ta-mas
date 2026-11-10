@@ -18,7 +18,7 @@ export const orderInputSchema = z.object({
   nik: z.string().trim().min(6).max(30),
   gender: z.enum(["Laki-laki", "Perempuan"]),
   birthDate: z.string().trim().min(8).max(20),
-  paymentMethod: z.enum(["BCA", "GOPAY"]),
+  paymentMethod: z.enum(["QRIS"]),
   note: z.string().trim().max(1000).optional().default(""),
   website: z.string().max(0).optional().default(""),
 });

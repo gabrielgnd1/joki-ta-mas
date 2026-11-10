@@ -39,7 +39,6 @@ export async function updateOrderStatusAction(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath(`/admin/orders/${id}`);
-  revalidatePath("/cek");
 }
 
 export async function saveOrderNoteAction(formData: FormData) {
@@ -65,12 +64,12 @@ export async function saveSettingsAction(formData: FormData) {
     "site_name",
     "site_tagline",
     "wa_number",
+    "wa_number_2",
     "x_username",
-    "bank_name",
-    "bank_account",
-    "bank_holder",
-    "gopay_number",
-    "gopay_holder",
+    "qris_merchant",
+    "qris_nmid",
+    "qris_image",
+    "qris_note",
     "payment_note",
     "terms",
     "announcement",

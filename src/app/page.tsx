@@ -39,12 +39,13 @@ export default function HomePage() {
 
   const wizardSettings: WizardSettings = {
     siteName: settings.site_name,
-    bankName: settings.bank_name,
-    bankAccount: settings.bank_account,
-    bankHolder: settings.bank_holder,
-    gopayNumber: settings.gopay_number,
-    gopayHolder: settings.gopay_holder,
+    qrisMerchant: settings.qris_merchant,
+    qrisNmid: settings.qris_nmid,
+    qrisImage: settings.qris_image,
+    qrisNote: settings.qris_note,
     waNumber: settings.wa_number.replace(/[^0-9]/g, ""),
+    waNumber2: (settings.wa_number_2 || "").replace(/[^0-9]/g, ""),
+    xUsername: (settings.x_username || "").replace(/^@/, ""),
     terms: settings.terms,
   };
 
@@ -104,13 +105,13 @@ export default function HomePage() {
               number="2"
               emoji="📝"
               title="Isi Data"
-              text="Lengkapi identitas sesuai KTP dan pilih BCA atau GoPay."
+              text="Lengkapi identitas sesuai KTP, lalu bayar fee joki via QRIS."
             />
             <InfoCard
               number="3"
               emoji="✅"
-              title="Upload Bukti"
-              text="Transfer, unggah bukti, lalu admin verifikasi manual."
+              title="Kirim Bukti"
+              text="Transfer, kirim bukti via WhatsApp, lalu admin verifikasi manual."
             />
           </div>
         </div>

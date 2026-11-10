@@ -47,8 +47,6 @@ export type OrderRow = {
   payment_method: string;
   note: string | null;
   status: OrderStatus;
-  proof_file: string | null;
-  proof_uploaded_at: string | null;
   verified_by: string | null;
   verified_at: string | null;
   internal_note: string | null;
@@ -83,6 +81,5 @@ export const STATUS_BADGE: Record<OrderStatus, string> = {
 };
 
 export const PAYMENT_LABEL: Record<string, string> = {
-  BCA: "Transfer BCA",
-  GOPAY: "Transfer GoPay",
+  QRIS: "QRIS",
 };

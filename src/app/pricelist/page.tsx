@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ArenaArt } from "@/components/arena-art";
 import { getActiveEvent, getSections } from "@/lib/orders";
+import { getSettings } from "@/lib/settings";
 import { formatDateLong, formatRupiah } from "@/lib/format";
 import { colorForSection } from "@/lib/palette";
 
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default function PricelistPage() {
   const event = getActiveEvent();
+  const settings = getSettings();
   const sections = event ? getSections(event.id) : [];
   const palette = sections.map((section, index) =>
     colorForSection(section.code, index),
@@ -147,8 +149,8 @@ export default function PricelistPage() {
                       mengantisipasi section utama habis.
                     </li>
                     <li>
-                      Pembayaran hanya melalui Transfer BCA dan Transfer GoPay,
-                      diverifikasi manual oleh admin.
+                      Pembayaran hanya melalui QRIS, diverifikasi manual oleh
+                      admin.
                     </li>
                   </ul>
                 </div>
@@ -157,9 +159,17 @@ export default function PricelistPage() {
                   <Link href="/" className="btn-primary">
                     Buat Pesanan
                   </Link>
-                  <Link href="/cek" className="btn-secondary">
-                    Cek Pesanan
-                  </Link>
+                  <a
+                    href={`https://wa.me/${settings.wa_number.replace(
+                      /[^0-9]/g,
+                      "",
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-secondary"
+                  >
+                    Hubungi Admin
+                  </a>
                 </div>
               </>
             )}

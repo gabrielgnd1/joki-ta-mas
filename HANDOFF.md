@@ -1,4 +1,4 @@
-# Panduan Lanjutan Proyek JOKITAMAS
+# Panduan Lanjutan Proyek Joki Ta Mas?
 
 > Dokumen serah-terima untuk teman yang akan melanjutkan proyek ini.
 > Terakhir diperbarui: 10 November 2026.
@@ -9,13 +9,13 @@ Dokumen ini menjelaskan **apa yang sudah jadi**, **cara menjalankannya**, **di m
 
 ## 1. Ringkasan proyek
 
-JOKITAMAS adalah website jasa **joki war tiket konser**. Pemesan mengisi form, memilih section, transfer fee joki, lalu mengunggah bukti transfer. Admin/verifikator mengecek bukti tersebut **secara manual** dan mengubah status pesanan.
+Joki Ta Mas? adalah website jasa **joki war tiket konser**. Pemesan mengisi form, memilih section, transfer fee joki, lalu mengirim bukti transfer ke admin lewat WhatsApp. Admin/verifikator mengecek bukti tersebut **secara manual** dan mengubah status pesanan.
 
 Yang **tidak** ada di proyek ini (memang di luar scope):
 
 - Joki VC / Meet & Greet / 2-shot.
 - Verifikasi pembayaran otomatis (tidak ada integrasi payment gateway/mutasi bank).
-- Pembayaran selain **Transfer BCA** dan **Transfer GoPay**.
+- Pembayaran selain **QRIS**.
 - Multi-event dalam satu halaman (saat ini satu event aktif, lihat bagian 8).
 
 ---
@@ -26,7 +26,7 @@ Sudah selesai dan sudah diuji end-to-end:
 
 - Form pemesanan 3 langkah (event → section → data diri & pembayaran).
 - Perhitungan harga di server, kode pesanan `JTM-XXXXXX`.
-- Halaman cek pesanan + unggah bukti transfer.
+- Tombol kirim bukti transfer lewat WhatsApp (tanpa upload di web).
 - Pricelist dengan warna per section.
 - Panel admin: daftar pesanan, filter, pencarian, statistik, detail pesanan, verifikasi manual, catatan internal, ubah status manual.
 - Manajemen event & section (harga, buka/tutup).
@@ -103,7 +103,6 @@ Lihat `.env.example`:
 | URL | File | Fungsi |
 | --- | --- | --- |
 | `/` | `src/app/page.tsx` | Hero + wizard pemesanan |
-| `/cek` | `src/app/cek/page.tsx` | Cek status, instruksi bayar, unggah bukti |
 | `/pricelist` | `src/app/pricelist/page.tsx` | Daftar fee per section |
 
 ### Panel admin
@@ -112,7 +111,7 @@ Lihat `.env.example`:
 | --- | --- | --- | --- |
 | `/admin/login` | `src/app/admin/login/page.tsx` | publik | Form login |
 | `/admin` | `src/app/admin/(panel)/page.tsx` | admin + verifier | Daftar pesanan, filter, statistik |
-| `/admin/orders/[id]` | `src/app/admin/(panel)/orders/[id]/page.tsx` | admin + verifier | Detail, bukti, verifikasi manual |
+| `/admin/orders/[id]` | `src/app/admin/(panel)/orders/[id]/page.tsx` | admin + verifier | Detail, verifikasi manual |
 | `/admin/event` | `src/app/admin/(panel)/event/page.tsx` | **admin saja** | Ubah event, harga, buka/tutup section |
 | `/admin/settings` | `src/app/admin/(panel)/settings/page.tsx` | **admin saja** | Rekening, kontak, syarat, pengumuman |
 | `/admin/team` | `src/app/admin/(panel)/team/page.tsx` | **admin saja** | Kelola akun tim |
@@ -122,8 +121,6 @@ Lihat `.env.example`:
 | Endpoint | Method | Fungsi |
 | --- | --- | --- |
 | `/api/orders` | `POST` | Membuat pesanan (validasi Zod + rate limit + honeypot) |
-| `/api/proof` | `POST` | Upload bukti transfer (maks 4 MB) |
-| `/api/proof/[code]` | `GET` | Menampilkan file bukti berdasarkan kode pesanan |
 
 ---
 
@@ -136,10 +133,7 @@ Pemesan isi form
 POST /api/orders  ──►  status: pending  (kode JTM-XXXXXX)
       │
       ▼
-Transfer BCA / GoPay, upload bukti di /cek
-      │
-      ▼
-POST /api/proof   ──►  status: review  (pending → review otomatis)
+Bayar via QRIS, kirim bukti ke admin via WhatsApp
       │
       ▼
 Admin buka detail, cocokkan nominal & tujuan transfer
@@ -153,7 +147,7 @@ Tiket didapat → admin tandai "Selesai"  ──►  status: completed
 
 Status lain:
 
-- `cancelled` — dibatalkan admin. Pesanan batal tidak bisa upload bukti.
+- `cancelled` — dibatalkan admin.
 - Admin juga bisa mengubah status manual lewat dropdown di halaman detail.
 
 ### Arti status (label UI)
@@ -177,10 +171,10 @@ Jangan ubah tanpa sadar, karena ini menyangkut uang dan data pribadi:
 1. **Harga selalu dihitung ulang di server** dari tabel `sections`. Client hanya mengirim `sectionCode`, `qty`, dll. Jangan pernah percaya `total` dari client.
 2. **Maksimal tiket per pesanan** disimpan di `events.max_tickets` (default 4, dibatasi 1–10 di form admin).
 3. **Section cadangan** maksimal 10, hanya boleh kode section yang valid, dan tidak boleh sama dengan section utama.
-4. **Metode pembayaran hanya** `BCA` atau `GOPAY` (validasi Zod).
+4. **Metode pembayaran hanya** `QRIS` (validasi Zod).
 5. **Tidak ada verifikasi otomatis.** Status `verified` hanya berubah lewat tombol admin (`updateOrderStatusAction`).
 6. **Kode pesanan** memakai alfabet tanpa karakter ambigu (`ABCDEFGHJKLMNPQRSTUVWXYZ23456789`), format `JTM-` + 6 karakter.
-7. **Bukti transfer** disimpan di `data/uploads/`, bukan di `public/`. Akses hanya lewat `/api/proof/[code]` dan butuh kode pesanan.
+7. **Bukti transfer tidak disimpan di server.** Pemesan mengirimkannya ke admin via WhatsApp; admin mencocokkan manual sebelum verifikasi.
 8. **Tiket war hanya konser.** Jangan tambahkan layanan VC/M&G/2-shot ke form tanpa mengubah alur & harga.
 
 ---
@@ -194,7 +188,6 @@ jokitamas/
 │  │  ├─ layout.tsx              # Root layout, metadata, font global
 │  │  ├─ globals.css             # Tema Tailwind 4 (warna, .card, .btn-*, .input)
 │  │  ├─ page.tsx                # Halaman utama (hero + wizard)
-│  │  ├─ cek/page.tsx            # Cek pesanan + unggah bukti
 │  │  ├─ pricelist/page.tsx      # Pricelist
 │  │  ├─ admin/
 │  │  │  ├─ login/page.tsx
@@ -209,11 +202,9 @@ jokitamas/
 │  │  │  ├─ admin.ts             # Status, catatan, event, section, settings, tim
 │  │  │  └─ auth.ts              # Login/logout
 │  │  └─ api/
-│  │     ├─ orders/route.ts
-│  │     └─ proof/route.ts, proof/[code]/route.ts
+│  │     └─ orders/route.ts
 │  ├─ components/
 │  │  ├─ order-wizard.tsx        # Wizard 3 langkah (client component)
-│  │  ├─ proof-uploader.tsx      # Upload bukti (client component)
 │  │  ├─ arena-art.tsx           # Ilustrasi seatmap SVG
 │  │  ├─ site-header.tsx / site-nav-links.tsx / site-footer.tsx
 │  │  ├─ admin-nav.tsx           # Navigasi panel admin
@@ -230,8 +221,7 @@ jokitamas/
 │     ├─ format.ts               # Format rupiah/tanggal (Asia/Jakarta)
 │     └─ types.ts                # Tipe DB, label status, label pembayaran
 ├─ data/                         # TIDAK di-commit (gitignored)
-│  ├─ jokitamas.db
-│  └─ uploads/
+│  └─ jokitamas.db
 ├─ HANDOFF.md                    # Dokumen ini
 ├─ README.md
 └─ ...config
@@ -251,7 +241,7 @@ SQLite satu file, diakses lewat `better-sqlite3`. Skema dibuat otomatis di `src/
 | `sessions` | Sesi login; menyimpan `token_hash`, bukan token asli |
 | `events` | Event aktif (`is_active`), `max_tickets` |
 | `sections` | Kategori per event (`code`, `price`, `is_open`, `sort`) |
-| `orders` | Semua pesanan + data identitas + bukti + status |
+| `orders` | Semua pesanan + data identitas + status |
 | `settings` | Key-value pengaturan situs |
 
 Detail kolom penting di `orders`:
@@ -261,13 +251,12 @@ Detail kolom penting di `orders`:
 - `section_code`, `section_price`, `qty`, `total` — snapshot harga.
 - `backup_sections` — JSON array kode section cadangan.
 - `status` — salah satu dari 5 status di atas.
-- `proof_file` — nama file di `data/uploads/`.
 - `verified_by`, `verified_at` — diisi saat admin memverifikasi.
 - `internal_note` — catatan admin, tidak dilihat pemesan.
 
 ### Settings keys
 
-`site_name`, `site_tagline`, `wa_number`, `x_username`, `bank_name`, `bank_account`, `bank_holder`, `gopay_number`, `gopay_holder`, `payment_note`, `terms`, `orders_open` (`"1"`/`"0"`), `announcement`.
+`site_name`, `site_tagline`, `wa_number`, `wa_number_2` (opsional), `x_username`, `qris_merchant`, `qris_nmid`, `qris_image`, `qris_note`, `payment_note`, `terms`, `orders_open` (`"1"`/`"0"`), `announcement`.
 
 Default lengkap ada di `DEFAULT_SETTINGS` (`src/lib/db.ts`).
 
@@ -290,7 +279,7 @@ Backup = copy folder `data/`:
 tar -czf backup-jokitamas-$(date +%F).tar.gz data/
 ```
 
-Reset total (hati-hati, semua pesanan & bukti hilang):
+Reset total (hati-hati, semua pesanan hilang):
 
 ```bash
 rm -rf data/
@@ -334,10 +323,10 @@ Sudah ada:
 - Sesi di database + cookie `httpOnly`, `sameSite=lax`, `secure` mengikuti `COOKIE_SECURE`.
 - Semua query memakai prepared statement (aman dari SQL injection).
 - Validasi input server-side dengan Zod.
-- Rate limit: pesanan 8×/10 menit/IP, upload 10×/10 menit/IP, login 10×/10 menit/IP.
+- Rate limit: pesanan 8×/10 menit/IP, login 10×/10 menit/IP.
 - Honeypot field `website` di form pesanan.
 - Harga dihitung ulang di server.
-- Bukti transfer tidak berada di `public/`.
+- Bukti transfer tidak disimpan di server; hanya dikirim via WhatsApp.
 - Role `verifier` tidak bisa membuka event/settings/team (redirect ke `/admin`).
 
 Belum ada / bisa ditingkatkan:
@@ -352,7 +341,7 @@ Belum ada / bisa ditingkatkan:
 
 ## 11. Deploy
 
-Syarat utama: **filesystem persisten**. Jangan deploy ke Vercel/Netlify serverless karena file SQLite dan upload akan hilang.
+Syarat utama: **filesystem persisten**. Jangan deploy ke Vercel/Netlify serverless karena file SQLite akan hilang. Bukti transfer tidak lagi disimpan di server (dikirim via WhatsApp), jadi yang perlu persisten hanya database.
 
 Opsi: VPS (Ubuntu), Railway/Fly dengan volume, atau komputer sendiri.
 
@@ -367,8 +356,8 @@ COOKIE_SECURE=true npm start   # di belakang reverse proxy HTTPS
 Checklist sebelum live:
 
 - [ ] Ganti `ADMIN_PASSWORD` sebelum database pertama kali dibuat, atau ganti lewat menu Tim.
-- [ ] Isi rekening BCA/GoPay asli di `/admin/settings`.
-- [ ] Ganti nomor WA & username X.
+- [ ] Isi data QRIS asli (merchant, NMID, gambar) di `/admin/settings`.
+- [ ] Ganti nomor WA (utama + cadangan) & username X.
 - [ ] Sesuaikan syarat & ketentuan.
 - [ ] Set harga section & event yang benar.
 - [ ] Set `COOKIE_SECURE=true` dan pasang HTTPS.
@@ -411,9 +400,9 @@ Prioritas menengah:
 
 Teknis:
 
-11. Tambah test (Vitest/Playwright) untuk `createOrder`, upload bukti, dan alur verifikasi.
+11. Tambah test (Vitest/Playwright) untuk `createOrder` dan alur verifikasi.
 12. Migrasi skema berversi (saat ini `CREATE TABLE IF NOT EXISTS`; perubahan kolom harus manual).
-13. Optimasi: kompres/gambar thumbnail bukti transfer.
+13. Optimasi query daftar pesanan bila data sudah banyak.
 14. Aksesibilitas: audit kontras, fokus keyboard, label form.
 
 ---
@@ -423,7 +412,7 @@ Teknis:
 - **Bahasa UI:** Indonesia. Nama variabel/kode: Inggris (konsisten dengan kode yang ada).
 - **Format uang/tanggal:** selalu lewat `src/lib/format.ts` (zona waktu `Asia/Jakarta`). Jangan format manual.
 - **Harga:** jangan pernah dipercaya dari client.
-- **Komponen server vs client:** default server component. Tambahkan `"use client"` hanya bila butuh state/event (contoh: `order-wizard.tsx`, `proof-uploader.tsx`).
+- **Komponen server vs client:** default server component. Tambahkan `"use client"` hanya bila butuh state/event (contoh: `order-wizard.tsx`, `admin-nav.tsx`).
 - **Mutasi data:** gunakan Server Actions di `src/app/actions/` untuk form admin; API route untuk hal yang dipanggil `fetch` dari client.
 - **Setelah mengubah data:** panggil `revalidatePath(...)` untuk halaman terkait.
 - **Query DB:** selalu prepared statement (`db.prepare(...).run/get/all`).
@@ -444,7 +433,6 @@ Teknis:
 | Logika pesanan & statistik | `src/lib/orders.ts` |
 | Aksi admin | `src/app/actions/admin.ts` |
 | Tampilan admin | `src/app/admin/(panel)/**` |
-| Batas upload/tipe file | `src/app/api/proof/route.ts` |
 | Rate limit | `src/lib/rate-limit.ts` |
 
 ---
@@ -474,9 +462,6 @@ Biasanya working directory berubah sehingga `./data/jokitamas.db` menunjuk ke lo
 
 **Login selalu gagal / balik ke halaman login**
 Cek `COOKIE_SECURE`: kalau `true` tapi diakses lewat HTTP, cookie tidak dikirim. Set `false` untuk development.
-
-**Bukti transfer tidak muncul**
-Pastikan file masih ada di `data/uploads/` dan nama file di kolom `proof_file` cocok. Cek log server.
 
 **Font tidak muncul**
 `globals.css` mengimpor Google Fonts. Kalau offline/terblokir, font jatuh ke fallback sistem.

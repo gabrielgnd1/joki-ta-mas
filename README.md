@@ -1,4 +1,4 @@
-# JOKITAMAS — Joki War Tiket Konser
+# Joki Ta Mas? — Joki War Tiket Konser
 
 Website pemesanan jasa war tiket konser dengan form 3 langkah, cek pesanan,
 pricelist, dan panel admin untuk verifikasi pembayaran secara manual.
@@ -54,24 +54,22 @@ Lalu buka http://localhost:3000/admin
 | URL | Fungsi |
 | --- | --- |
 | `/` | Form pemesanan (3 langkah) |
-| `/cek` | Cek status + unggah bukti transfer |
 | `/pricelist` | Daftar harga per section |
 | `/admin` | Daftar pesanan, filter, statistik |
-| `/admin/orders/[id]` | Detail pesanan, bukti transfer, verifikasi manual |
+| `/admin/orders/[id]` | Detail pesanan, verifikasi manual |
 | `/admin/event` | Ubah event, jadwal, fee, buka/tutup section |
-| `/admin/settings` | Rekening BCA/GoPay, kontak, syarat, buka/tutup war |
+| `/admin/settings` | QRIS, kontak, syarat, buka/tutup war |
 | `/admin/team` | Tambah admin/verifikator, reset password |
 
 ## Alur pembayaran manual
 
-1. Pemesan mengisi form dan memilih **Transfer BCA** atau **Transfer GoPay**.
+1. Pemesan mengisi form dan membayar fee joki melalui **QRIS**.
 2. Setelah submit, pemesan mendapat kode pesanan (`JTM-XXXXXX`).
-3. Pemesan transfer, lalu upload bukti di `/cek`.
-4. Status otomatis menjadi **Menunggu Verifikasi**.
-5. Admin membuka detail pesanan, mencocokkan nominal + tujuan transfer, lalu
+3. Pemesan transfer, lalu mengirim bukti transfer ke admin lewat WhatsApp.
+4. Admin membuka detail pesanan, mencocokkan nominal + tujuan transfer, lalu
    menekan **Verifikasi Pembayaran**. Status menjadi **Pembayaran Valid** dan
    tercatat siapa yang memverifikasi beserta waktunya.
-6. Setelah tiket berhasil didapat, admin menandai **Selesai**.
+5. Setelah tiket berhasil didapat, admin menandai **Selesai**.
 
 Tidak ada verifikasi otomatis. Semua perubahan status dilakukan manusia.
 
@@ -81,7 +79,6 @@ Semua data ada di folder `data/`:
 
 ```
 data/jokitamas.db          # database SQLite
-data/uploads/              # bukti transfer yang diunggah
 ```
 
 Backup cukup copy folder tersebut. Contoh:
@@ -97,15 +94,14 @@ tar -czf backup-jokitamas-$(date +%F).tar.gz data/
   SQLite di Vercel/Netlify serverless — datanya hilang.
 - Jalankan di belakang HTTPS, lalu set `COOKIE_SECURE=true` di `.env`.
 - Ganti `ADMIN_PASSWORD` sebelum deploy.
-- Upload bukti dibatasi 4 MB (JPG/PNG/WEBP/PDF), tersimpan di luar `public/`
-  dan hanya bisa diakses lewat route yang membutuhkan kode pesanan.
+- Bukti transfer tidak disimpan di server. Pemesan mengirimkannya ke admin
+  lewat WhatsApp, jadi tidak ada file sensitif yang perlu diamankan di hosting.
 
 ## Keamanan yang sudah ada
 
 - Password di-hash dengan `scrypt` (bukan plain text).
 - Sesi login disimpan di database + cookie `httpOnly`, bukan JWT di localStorage.
-- Rate limit untuk submit pesanan, upload bukti, dan login.
+- Rate limit untuk submit pesanan dan login.
 - Honeypot field untuk bot.
 - Harga **selalu dihitung ulang di server** dari database, bukan dari client.
-- Bukti transfer tidak bisa ditebak karena butuh kode pesanan acak.
 - Verifikator tidak bisa mengakses menu event, pengaturan, atau tim.
