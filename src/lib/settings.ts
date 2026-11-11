@@ -1,8 +1,13 @@
+import { cache } from "react";
 import { DEFAULT_SETTINGS, getDb } from "./db";
 
 export type Settings = Record<string, string>;
 
-export async function getSettings(): Promise<Settings> {
+/**
+ * Cached per request so the admin layout and page don't fetch the same
+ * settings twice from the remote database.
+ */
+export const getSettings = cache(async (): Promise<Settings> => {
   const db = await getDb();
   const result = await db.execute("SELECT key, value FROM settings");
   const settings: Settings = { ...DEFAULT_SETTINGS };
@@ -10,7 +15,7 @@ export async function getSettings(): Promise<Settings> {
     settings[String(row.key)] = String(row.value ?? "");
   }
   return settings;
-}
+});
 
 export async function getSetting(key: string): Promise<string> {
   return (await getSettings())[key] ?? "";

@@ -97,6 +97,8 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   terms:
     "Pastikan data identitas (Nama, NIK, No HP) sesuai dengan KTP/ID asli pemegang tiket.\nSiapkan saldo pada aplikasi pembayaran yang mendukung QRIS saat war tiket berlangsung.\nJangan double joki untuk pesanan tiket yang sama.\nPembayaran fee joki diverifikasi manual oleh admin.",
   orders_open: "1",
+  ticket_ofc_enabled: "1",
+  ticket_general_enabled: "1",
   announcement: "",
 };
 
@@ -146,10 +148,11 @@ async function seed(client: Client): Promise<void> {
     await client.batch(settingStatements, "write");
   }
 
-  const userCountResult = await client.execute(
-    "SELECT COUNT(*) AS c FROM users",
+  const countsResult = await client.execute(
+    "SELECT (SELECT COUNT(*) FROM users) AS users, (SELECT COUNT(*) FROM events) AS events",
   );
-  const userCount = Number(userCountResult.rows[0]?.c ?? 0);
+  const userCount = Number(countsResult.rows[0]?.users ?? 0);
+  const eventCount = Number(countsResult.rows[0]?.events ?? 0);
 
   if (userCount === 0) {
     const email = process.env.ADMIN_EMAIL || "admin@jokitamas.local";
@@ -160,11 +163,6 @@ async function seed(client: Client): Promise<void> {
       args: [name, email, hashPassword(password), now()],
     });
   }
-
-  const eventCountResult = await client.execute(
-    "SELECT COUNT(*) AS c FROM events",
-  );
-  const eventCount = Number(eventCountResult.rows[0]?.c ?? 0);
 
   if (eventCount === 0) {
     const eventResult = await client.execute({

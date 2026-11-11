@@ -59,6 +59,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const ticketTypeOpen =
+    parsed.data.ticketType === "Presale OFC"
+      ? settings.ticket_ofc_enabled !== "0"
+      : settings.ticket_general_enabled !== "0";
+
+  if (!ticketTypeOpen) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: `Tipe penjualan ${parsed.data.ticketType} sedang ditutup.`,
+      },
+      { status: 403 },
+    );
+  }
+
   try {
     const { code, total } = await createOrder(parsed.data);
     return NextResponse.json({ ok: true, code, total }, { status: 201 });

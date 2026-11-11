@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getDb } from "./db";
@@ -46,7 +47,11 @@ export async function destroyCurrentSession(): Promise<void> {
   store.delete(SESSION_COOKIE);
 }
 
-export async function getCurrentUser(): Promise<UserRow | null> {
+/**
+ * Cached per request so the admin layout and page share a single session
+ * lookup instead of hitting the database twice on every navigation.
+ */
+export const getCurrentUser = cache(async (): Promise<UserRow | null> => {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -60,7 +65,7 @@ export async function getCurrentUser(): Promise<UserRow | null> {
   });
 
   return (result.rows[0] as unknown as UserRow) ?? null;
-}
+});
 
 export async function requireUser(): Promise<UserRow> {
   const user = await getCurrentUser();

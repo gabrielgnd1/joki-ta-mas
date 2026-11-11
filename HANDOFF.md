@@ -255,7 +255,7 @@ Detail kolom penting di `orders`:
 
 ### Settings keys
 
-`site_name`, `site_tagline`, `wa_number`, `wa_number_2` (opsional), `x_username`, `qris_merchant`, `qris_nmid`, `qris_image`, `qris_note`, `payment_note`, `terms`, `orders_open` (`"1"`/`"0"`), `announcement`.
+`site_name`, `site_tagline`, `wa_number`, `wa_number_2` (opsional), `x_username`, `qris_merchant`, `qris_nmid`, `qris_image`, `qris_note`, `payment_note`, `terms`, `orders_open` (`"1"`/`"0"`), `ticket_ofc_enabled` (`"1"`/`"0"`), `ticket_general_enabled` (`"1"`/`"0"`), `announcement`.
 
 Default lengkap ada di `DEFAULT_SETTINGS` (`src/lib/db.ts`).
 

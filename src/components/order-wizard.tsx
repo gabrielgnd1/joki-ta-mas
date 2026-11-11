@@ -33,6 +33,8 @@ export type WizardSettings = {
   waNumber2?: string;
   xUsername?: string;
   terms: string;
+  ticketOfcEnabled: boolean;
+  ticketGeneralEnabled: boolean;
 };
 
 type FormState = {
@@ -59,7 +61,8 @@ const initialForm: FormState = {
   website: "",
 };
 
-const TICKET_TYPES = ["Presale OFC", "General Sale"] as const;
+const ALL_TICKET_TYPES = ["Presale OFC", "General Sale"] as const;
+type TicketType = (typeof ALL_TICKET_TYPES)[number];
 
 export function OrderWizard({
   event,
@@ -73,8 +76,18 @@ export function OrderWizard({
   announcement: string;
 }) {
   const [step, setStep] = useState(1);
-  const [ticketType, setTicketType] =
-    useState<(typeof TICKET_TYPES)[number]>("General Sale");
+  const ticketTypes = useMemo(
+    () =>
+      ALL_TICKET_TYPES.filter((type) =>
+        type === "Presale OFC"
+          ? settings.ticketOfcEnabled
+          : settings.ticketGeneralEnabled,
+      ),
+    [settings.ticketOfcEnabled, settings.ticketGeneralEnabled],
+  );
+  const [ticketType, setTicketType] = useState<TicketType>(
+    () => ticketTypes[0] ?? "General Sale",
+  );
   const [sectionCode, setSectionCode] = useState("");
   const [qty, setQty] = useState(1);
   const [backups, setBackups] = useState<string[]>([]);
@@ -215,6 +228,34 @@ export function OrderWizard({
     );
   }
 
+  if (ticketTypes.length === 0) {
+    return (
+      <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
+        <div />
+        <div className="card p-8 text-center sm:p-12">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-50 text-3xl">
+            🎟️
+          </div>
+          <h2 className="mt-4 font-display text-2xl font-extrabold text-slate-900">
+            Tipe tiket belum dibuka
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+            {announcement ||
+              "Admin belum membuka tipe penjualan tiket. Silakan cek kembali nanti atau hubungi admin."}
+          </p>
+          <a
+            className="btn-secondary mt-5"
+            href={`https://wa.me/${settings.waNumber}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Hubungi Admin
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="grid items-start gap-5 lg:grid-cols-[310px_1fr]">
@@ -266,7 +307,7 @@ export function OrderWizard({
                 <div className="mt-6">
                   <span className="label">Tipe Penjualan Tiket</span>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    {TICKET_TYPES.map((type) => {
+                    {ticketTypes.map((type) => {
                       const selected = ticketType === type;
                       return (
                         <button
@@ -305,7 +346,7 @@ export function OrderWizard({
                     })}
                   </div>
                   <p className="hint">
-                    Fee joki sama untuk kedua tipe penjualan.
+                    Fee joki sama untuk semua tipe penjualan.
                   </p>
                 </div>
 

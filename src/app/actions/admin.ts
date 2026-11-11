@@ -84,6 +84,10 @@ export async function saveSettingsAction(formData: FormData) {
     values[key] = String(formData.get(key) || "").trim();
   }
   values.orders_open = formData.get("orders_open") ? "1" : "0";
+  values.ticket_ofc_enabled = formData.get("ticket_ofc_enabled") ? "1" : "0";
+  values.ticket_general_enabled = formData.get("ticket_general_enabled")
+    ? "1"
+    : "0";
 
   await saveSettings(values);
 

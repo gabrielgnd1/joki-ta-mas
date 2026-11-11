@@ -47,6 +47,8 @@ export default async function HomePage() {
     waNumber2: (settings.wa_number_2 || "").replace(/[^0-9]/g, ""),
     xUsername: (settings.x_username || "").replace(/^@/, ""),
     terms: settings.terms,
+    ticketOfcEnabled: settings.ticket_ofc_enabled !== "0",
+    ticketGeneralEnabled: settings.ticket_general_enabled !== "0",
   };
 
   return (

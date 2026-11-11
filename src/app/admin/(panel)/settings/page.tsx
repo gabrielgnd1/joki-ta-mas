@@ -54,6 +54,55 @@ Informasi pembayaran QRIS dan pengaturan yang tampil ke pemesan.
         </div>
 
         <div className="card p-5">
+          <h2 className="section-title">Tipe Penjualan Tiket</h2>
+          <p className="mt-2 text-xs text-slate-500">
+            Aktifkan atau nonaktifkan tipe penjualan yang bisa dipilih pemesan
+            di form. Pesanan lama tidak terpengaruh.
+          </p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 text-sm">
+              <input
+                type="checkbox"
+                name="ticket_ofc_enabled"
+                defaultChecked={settings.ticket_ofc_enabled === "1"}
+                className="mt-0.5 h-4 w-4 accent-sky-600"
+              />
+              <span>
+                <span className="font-semibold text-slate-900">
+                  Presale OFC
+                </span>
+                <span className="block text-xs text-slate-500">
+                  Untuk pemegang kode presale official fan club.
+                </span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 text-sm">
+              <input
+                type="checkbox"
+                name="ticket_general_enabled"
+                defaultChecked={settings.ticket_general_enabled === "1"}
+                className="mt-0.5 h-4 w-4 accent-sky-600"
+              />
+              <span>
+                <span className="font-semibold text-slate-900">
+                  General Sale
+                </span>
+                <span className="block text-xs text-slate-500">
+                  Penjualan umum sesuai jadwal resmi.
+                </span>
+              </span>
+            </label>
+          </div>
+          {settings.ticket_ofc_enabled !== "1" &&
+            settings.ticket_general_enabled !== "1" && (
+              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                Kedua tipe sedang nonaktif. Pemesan tidak bisa memilih tipe
+                penjualan sampai salah satunya diaktifkan.
+              </p>
+            )}
+        </div>
+
+        <div className="card p-5">
           <h2 className="section-title">Pembayaran QRIS</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
