@@ -1,7 +1,8 @@
-# Joki Ta Mas? — Joki War Tiket Konser
+# Joki Ta Mas? — Jasa Joki Tiket 2S / MnG
 
-Website pemesanan jasa war tiket konser dengan form 3 langkah, pricelist, dan
-panel admin untuk verifikasi pembayaran secara manual.
+Website pemesanan jasa joki tiket JKT48 (**2-Shot** dan **Meet & Greet**) dengan
+keranjang multi-member, pengiriman rincian pesanan ke WhatsApp, dan panel admin
+untuk verifikasi status secara manual.
 
 > Baru bergabung atau lanjut mengerjakan proyek ini? Baca
 > **[`HANDOFF.md`](./HANDOFF.md)** — panduan lengkap dalam Bahasa Indonesia.
@@ -10,7 +11,7 @@ panel admin untuk verifikasi pembayaran secara manual.
 
 - **Next.js 16** (App Router, Server Actions) + React 19
 - **SQLite** via `@libsql/client` (libSQL / Turso)
-- **Tailwind CSS 4**
+- **Tailwind CSS 4** + CSS mentah yang di-scope di `globals.css`
 - Lokal: database file di `data/`. Produksi: Turso (gratis) supaya bisa jalan
   di Vercel. Cukup Node.js 22+.
 
@@ -36,7 +37,7 @@ Saat database pertama kali dibuat, akun admin otomatis dibuat dari env:
 
 | Env | Default |
 | --- | --- |
-| `ADMIN_NAME` | `Admin Jokitamas` |
+| `ADMIN_NAME` | `Admin Joki Ta Mas?` |
 | `ADMIN_EMAIL` | `admin@jokitamas.local` |
 | `ADMIN_PASSWORD` | `admin123` |
 
@@ -53,25 +54,29 @@ Lalu buka http://localhost:3000/admin
 
 | URL | Fungsi |
 | --- | --- |
-| `/` | Form pemesanan (3 langkah) |
-| `/pricelist` | Daftar harga per section |
-| `/admin` | Daftar pesanan, filter, statistik |
-| `/admin/orders/[id]` | Detail pesanan, verifikasi manual |
-| `/admin/event` | Ubah event, jadwal, fee, buka/tutup section |
-| `/admin/settings` | QRIS, kontak, syarat, buka/tutup war |
-| `/admin/team` | Tambah admin/verifikator, reset password |
+| `/` | Form pesanan 2S / MnG (keranjang multi-member → WhatsApp) |
+| `/admin` | Daftar pesanan, filter status, pencarian, statistik |
+| `/admin/orders/[id]` | Detail pesanan, kredensial akun, verifikasi status |
+| `/admin/settings` | Buka/tutup pemesanan & jenis akun, pengumuman, kontak WA |
+| `/admin/team` | Tambah admin/verifikator, aktif/nonaktif, reset password |
+| `/admin/login` | Login admin |
 
-## Alur pembayaran manual
+Halaman `/pricelist` dan `/admin/event` dari versi lama **sudah dihapus**.
 
-1. Pemesan mengisi form dan membayar fee joki melalui **QRIS**.
-2. Setelah submit, pemesan mendapat kode pesanan (`JTM-XXXXXX`).
-3. Pemesan membayar via QRIS, lalu mengirim bukti pembayaran ke admin lewat WhatsApp.
-4. Admin membuka detail pesanan, mencocokkan nominal + tujuan transfer, lalu
-   menekan **Verifikasi Pembayaran**. Status menjadi **Pembayaran Valid** dan
-   tercatat siapa yang memverifikasi beserta waktunya.
-5. Setelah tiket berhasil didapat, admin menandai **Selesai**.
+## Alur pemesanan
 
-Tidak ada verifikasi otomatis. Semua perubahan status dilakukan manusia.
+1. Pemesan memilih layanan (2S atau MnG), tim, member, jumlah tiket, lalu
+   menambahkannya ke keranjang. Bisa lebih dari satu member dalam satu pesanan.
+2. Pemesan mengisi nama, status akun (OFC / Non-OFC), email & password akun
+   JKT48. **Tidak ada** kolom nomor WhatsApp pemesan.
+3. Submit → pesanan disimpan di database dengan kode `JTM-XXXXXX`, lalu jendela
+   WhatsApp ke admin terbuka berisi rincian pesanan **termasuk kode pesanan**.
+4. Admin mencocokkan chat WhatsApp dengan pesanan di panel lewat kode tersebut.
+5. Admin memverifikasi (Pembayaran Valid), menambahkan catatan internal, dan
+   menandai **Selesai** — semuanya manual, tidak ada verifikasi otomatis.
+
+Harga selalu dihitung ulang di server dari katalog member (`src/lib/members.ts`),
+bukan dari client.
 
 ## Database
 
@@ -84,8 +89,12 @@ TURSO_DATABASE_URL=libsql://...
 TURSO_AUTH_TOKEN=...
 ```
 
-Skema dan data awal (admin + event contoh) dibuat otomatis saat request
-pertama. Backup database Turso lewat dashboard Turso atau:
+Skema dan data awal (admin + settings) dibuat otomatis saat request pertama.
+Tabel pesanan aktif: **`service_orders`**. Tabel lama (`orders`, `events`,
+`sections`) masih ada di skema agar data lama tidak hilang, tetapi tidak dipakai
+aplikasi lagi.
+
+Backup database Turso lewat dashboard Turso atau:
 
 ```bash
 turso db shell jokitamas ".dump" > backup.sql
@@ -106,14 +115,16 @@ turso db shell jokitamas ".dump" > backup.sql
 Jangan set `DATABASE_PATH` di Vercel. Filesystem Vercel tidak persisten; semua
 data harus lewat Turso.
 
-- Bukti transfer tidak disimpan di server. Pemesan mengirimkannya ke admin
-  lewat WhatsApp, jadi tidak ada file sensitif yang perlu diamankan di hosting.
+- Kredensial akun JKT48 pemesan disimpan di database dan hanya tampil di panel
+  admin (ada peringatan + tombol tampilkan/salin). Tidak ada file upload.
+- Nomor WhatsApp pemesan tidak diminta; koordinasi lewat chat WhatsApp dengan
+  mencocokkan kode pesanan.
 
 ## Keamanan yang sudah ada
 
-- Password di-hash dengan `scrypt` (bukan plain text).
+- Password admin di-hash dengan `scrypt` (bukan plain text).
 - Sesi login disimpan di database + cookie `httpOnly`, bukan JWT di localStorage.
 - Rate limit untuk submit pesanan dan login.
 - Honeypot field untuk bot.
-- Harga **selalu dihitung ulang di server** dari database, bukan dari client.
-- Verifikator tidak bisa mengakses menu event, pengaturan, atau tim.
+- Harga **selalu dihitung ulang di server** dari katalog member, bukan dari client.
+- Verifikator tidak bisa mengakses pengaturan atau tim.

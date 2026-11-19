@@ -29,12 +29,12 @@ export async function updateOrderStatusAction(formData: FormData) {
 
   if (status === "verified") {
     await db.execute({
-      sql: "UPDATE orders SET status = ?, verified_by = ?, verified_at = ?, updated_at = ? WHERE id = ?",
+      sql: "UPDATE service_orders SET status = ?, verified_by = ?, verified_at = ?, updated_at = ? WHERE id = ?",
       args: [status, user.name, now, now, id],
     });
   } else {
     await db.execute({
-      sql: "UPDATE orders SET status = ?, updated_at = ? WHERE id = ?",
+      sql: "UPDATE service_orders SET status = ?, updated_at = ? WHERE id = ?",
       args: [status, now, id],
     });
   }
@@ -54,7 +54,7 @@ export async function saveOrderNoteAction(formData: FormData) {
 
   const db = await getDb();
   await db.execute({
-    sql: "UPDATE orders SET internal_note = ?, updated_at = ? WHERE id = ?",
+    sql: "UPDATE service_orders SET internal_note = ?, updated_at = ? WHERE id = ?",
     args: [note, new Date().toISOString(), id],
   });
 
@@ -70,12 +70,6 @@ export async function saveSettingsAction(formData: FormData) {
     "wa_number",
     "wa_number_2",
     "x_username",
-    "qris_merchant",
-    "qris_nmid",
-    "qris_image",
-    "qris_note",
-    "payment_note",
-    "terms",
     "announcement",
   ];
 
@@ -93,59 +87,6 @@ export async function saveSettingsAction(formData: FormData) {
 
   revalidatePath("/admin/settings");
   revalidatePath("/");
-  revalidatePath("/pricelist");
-}
-
-function toJakartaIso(value: string): string | null {
-  if (!value) return null;
-  if (/[zZ]$|[+-]\d{2}:\d{2}$/.test(value)) return value;
-  return `${value.length === 16 ? `${value}:00` : value}+07:00`;
-}
-
-export async function saveEventAction(formData: FormData) {
-  await requireAdmin();
-
-  const id = Number(formData.get("id"));
-  const name = String(formData.get("name") || "").trim();
-  const venue = String(formData.get("venue") || "").trim();
-  const showAt = String(formData.get("show_at") || "").trim();
-  const maxTickets = Math.min(
-    10,
-    Math.max(1, Number(formData.get("max_tickets")) || 4),
-  );
-  const isActive = formData.get("is_active") ? 1 : 0;
-
-  if (!Number.isInteger(id) || id <= 0 || !name) return;
-
-  const db = await getDb();
-  await db.execute({
-    sql: "UPDATE events SET name = ?, venue = ?, show_at = ?, max_tickets = ?, is_active = ? WHERE id = ?",
-    args: [name, venue || null, toJakartaIso(showAt), maxTickets, isActive, id],
-  });
-
-  revalidatePath("/admin/event");
-  revalidatePath("/");
-  revalidatePath("/pricelist");
-}
-
-export async function saveSectionAction(formData: FormData) {
-  await requireAdmin();
-
-  const id = Number(formData.get("id"));
-  const price = Math.max(0, Number(formData.get("price")) || 0);
-  const isOpen = formData.get("is_open") ? 1 : 0;
-
-  if (!Number.isInteger(id) || id <= 0) return;
-
-  const db = await getDb();
-  await db.execute({
-    sql: "UPDATE sections SET price = ?, is_open = ? WHERE id = ?",
-    args: [price, isOpen, id],
-  });
-
-  revalidatePath("/admin/event");
-  revalidatePath("/");
-  revalidatePath("/pricelist");
 }
 
 export async function addUserAction(formData: FormData) {

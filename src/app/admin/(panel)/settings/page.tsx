@@ -12,10 +12,11 @@ export default async function AdminSettingsPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
-          Pembayaran &amp; Pengaturan
+          Pengaturan Situs
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-Informasi pembayaran QRIS dan pengaturan yang tampil ke pemesan.
+          Nomor WhatsApp dipakai form order untuk mengirim rincian pesanan ke
+          admin.
         </p>
       </div>
 
@@ -27,15 +28,15 @@ Informasi pembayaran QRIS dan pengaturan yang tampil ke pemesan.
               type="checkbox"
               name="orders_open"
               defaultChecked={settings.orders_open === "1"}
-              className="mt-0.5 h-4 w-4 accent-sky-600"
+              className="mt-0.5 h-4 w-4 accent-rose-600"
             />
             <span>
               <span className="font-semibold text-slate-900">
                 Buka pemesanan
               </span>
               <span className="block text-xs text-slate-500">
-                Jika dimatikan, form pemesanan akan menampilkan “War sedang
-                ditutup”.
+                Jika dimatikan, form order menampilkan pemberitahuan dan tombol
+                kirim dinonaktifkan.
               </span>
             </span>
           </label>
@@ -48,16 +49,19 @@ Informasi pembayaran QRIS dan pengaturan yang tampil ke pemesan.
               name="announcement"
               defaultValue={settings.announcement}
               className="input min-h-20"
-              placeholder="Contoh: War dibuka 10 menit sebelum penjualan."
+              placeholder="Contoh: Slot MnG tinggal 3 hari lagi."
             />
+            <p className="hint">
+              Tampil sebagai baris di atas form order pada halaman utama.
+            </p>
           </div>
         </div>
 
         <div className="card p-5">
-          <h2 className="section-title">Tipe Penjualan Tiket</h2>
+          <h2 className="section-title">Jenis Akun yang Diterima</h2>
           <p className="mt-2 text-xs text-slate-500">
-            Aktifkan atau nonaktifkan tipe penjualan yang bisa dipilih pemesan
-            di form. Pesanan lama tidak terpengaruh.
+            Nonaktifkan salah satu jenis akun jika pemesanan untuk jenis
+            tersebut sedang ditutup. Pesanan lama tidak terpengaruh.
           </p>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 text-sm">
@@ -65,14 +69,14 @@ Informasi pembayaran QRIS dan pengaturan yang tampil ke pemesan.
                 type="checkbox"
                 name="ticket_ofc_enabled"
                 defaultChecked={settings.ticket_ofc_enabled === "1"}
-                className="mt-0.5 h-4 w-4 accent-sky-600"
+                className="mt-0.5 h-4 w-4 accent-rose-600"
               />
               <span>
                 <span className="font-semibold text-slate-900">
-                  Presale OFC
+                  Akun OFC (Official Fan Club)
                 </span>
                 <span className="block text-xs text-slate-500">
-                  Untuk pemegang kode presale official fan club.
+                  Pemesan dengan status akun OFC.
                 </span>
               </span>
             </label>
@@ -81,14 +85,14 @@ Informasi pembayaran QRIS dan pengaturan yang tampil ke pemesan.
                 type="checkbox"
                 name="ticket_general_enabled"
                 defaultChecked={settings.ticket_general_enabled === "1"}
-                className="mt-0.5 h-4 w-4 accent-sky-600"
+                className="mt-0.5 h-4 w-4 accent-rose-600"
               />
               <span>
                 <span className="font-semibold text-slate-900">
-                  General Sale
+                  Akun Non-OFC (Regular)
                 </span>
                 <span className="block text-xs text-slate-500">
-                  Penjualan umum sesuai jadwal resmi.
+                  Pemesan tanpa keanggotaan OFC.
                 </span>
               </span>
             </label>
@@ -96,80 +100,14 @@ Informasi pembayaran QRIS dan pengaturan yang tampil ke pemesan.
           {settings.ticket_ofc_enabled !== "1" &&
             settings.ticket_general_enabled !== "1" && (
               <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
-                Kedua tipe sedang nonaktif. Pemesan tidak bisa memilih tipe
-                penjualan sampai salah satunya diaktifkan.
+                Kedua jenis akun sedang nonaktif. Pemesan tidak bisa mengirim
+                pesanan sampai salah satunya diaktifkan.
               </p>
             )}
         </div>
 
         <div className="card p-5">
-          <h2 className="section-title">Pembayaran QRIS</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="label" htmlFor="qris_merchant">
-                Nama Merchant QRIS
-              </label>
-              <input
-                id="qris_merchant"
-                name="qris_merchant"
-                defaultValue={settings.qris_merchant}
-                className="input"
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="qris_nmid">
-                NMID QRIS
-              </label>
-              <input
-                id="qris_nmid"
-                name="qris_nmid"
-                defaultValue={settings.qris_nmid}
-                className="input font-mono"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="label" htmlFor="qris_image">
-                Gambar QRIS (path atau URL)
-              </label>
-              <input
-                id="qris_image"
-                name="qris_image"
-                defaultValue={settings.qris_image}
-                className="input font-mono"
-                placeholder="/qris.jpg atau https://..."
-              />
-              <p className="hint">
-                Letakkan file di <code>public/qris.jpg</code> atau isi dengan URL
-                gambar QRIS.
-              </p>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="label" htmlFor="qris_note">
-                Catatan QRIS
-              </label>
-              <textarea
-                id="qris_note"
-                name="qris_note"
-                defaultValue={settings.qris_note}
-                className="input min-h-20"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="label" htmlFor="payment_note">
-                Catatan Pembayaran
-              </label>
-              <textarea
-                id="payment_note"
-                name="payment_note"
-                defaultValue={settings.payment_note}
-                className="input min-h-20"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="card p-5">
-          <h2 className="section-title">Identitas Situs</h2>
+          <h2 className="section-title">Identitas &amp; Kontak Situs</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
               <label className="label" htmlFor="site_name">
@@ -204,6 +142,9 @@ Informasi pembayaran QRIS dan pengaturan yang tampil ke pemesan.
                 className="input font-mono"
                 placeholder="628xxxxxxxxxx"
               />
+              <p className="hint">
+                Tujuan tombol “Kirim Semua Pesanan ke WhatsApp”.
+              </p>
             </div>
             <div>
               <label className="label" htmlFor="wa_number_2">
@@ -217,7 +158,7 @@ Informasi pembayaran QRIS dan pengaturan yang tampil ke pemesan.
                 placeholder="628xxxxxxxxxx"
               />
             </div>
-            <div>
+            <div className="sm:col-span-2">
               <label className="label" htmlFor="x_username">
                 Username X
               </label>
@@ -228,22 +169,14 @@ Informasi pembayaran QRIS dan pengaturan yang tampil ke pemesan.
                 className="input"
               />
             </div>
-            <div className="sm:col-span-2">
-              <label className="label" htmlFor="terms">
-                Syarat &amp; Ketentuan (satu baris = satu poin)
-              </label>
-              <textarea
-                id="terms"
-                name="terms"
-                defaultValue={settings.terms}
-                className="input min-h-32"
-              />
-            </div>
           </div>
         </div>
 
         <div className="flex justify-end">
-          <button type="submit" className="btn-primary">
+          <button
+            type="submit"
+            className="rounded-xl bg-rose-600 px-5 py-3 text-sm font-extrabold text-white shadow-[0_10px_24px_-10px_rgba(225,29,72,0.9)] transition hover:bg-rose-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-rose-200"
+          >
             Simpan Pengaturan
           </button>
         </div>

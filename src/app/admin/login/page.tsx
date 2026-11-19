@@ -23,21 +23,26 @@ export default async function LoginPage({
   const settings = await getSettings();
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-100 px-4 py-10">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <div className="text-xl font-extrabold tracking-tight text-sky-700 uppercase">
-            {settings.site_name}
-          </div>
-          <div className="text-xs font-medium text-slate-500">
-            Panel Admin
+        <div className="mb-6 flex flex-col items-center gap-3 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-600 text-xl shadow-lg shadow-rose-200">
+            🎟️
+          </span>
+          <div>
+            <div className="text-lg font-extrabold tracking-tight text-slate-900">
+              {settings.site_name}
+            </div>
+            <div className="text-[11px] font-bold tracking-[0.16em] text-rose-600 uppercase">
+              Panel Admin
+            </div>
           </div>
         </div>
 
         <div className="card p-6">
           <h1 className="text-lg font-bold text-slate-900">Masuk</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Khusus tim admin dan verifikator pembayaran.
+            Khusus tim admin dan verifikator pesanan.
           </p>
 
           {error && (
@@ -75,7 +80,10 @@ export default async function LoginPage({
                 placeholder="••••••••"
               />
             </div>
-            <button type="submit" className="btn-primary w-full">
+            <button
+              type="submit"
+              className="w-full rounded-xl bg-rose-600 px-5 py-3 text-sm font-extrabold text-white shadow-[0_10px_24px_-10px_rgba(225,29,72,0.9)] transition hover:bg-rose-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-rose-200"
+            >
               Masuk
             </button>
           </form>

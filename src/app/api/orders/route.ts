@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createOrder, OrderError } from "@/lib/orders";
+import { createServiceOrder, OrderError } from "@/lib/service-orders";
 import { getSettings } from "@/lib/settings";
-import { orderInputSchema } from "@/lib/validation";
+import { jokiOrderInputSchema } from "@/lib/validation";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const parsed = orderInputSchema.safeParse(body);
+  const parsed = jokiOrderInputSchema.safeParse(body);
   if (!parsed.success) {
     const first = parsed.error.issues[0];
     return NextResponse.json(
@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Honeypot: bot mengisi field tersembunyi `website`.
   if (parsed.data.website) {
     return NextResponse.json(
       { ok: false, error: "Permintaan ditolak." },
@@ -59,24 +60,29 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const ticketTypeOpen =
-    parsed.data.ticketType === "Presale OFC"
+  const accountOpen =
+    parsed.data.accountType === "OFC"
       ? settings.ticket_ofc_enabled !== "0"
       : settings.ticket_general_enabled !== "0";
 
-  if (!ticketTypeOpen) {
+  if (!accountOpen) {
     return NextResponse.json(
       {
         ok: false,
-        error: `Tipe penjualan ${parsed.data.ticketType} sedang ditutup.`,
+        error: `Pesanan untuk akun ${parsed.data.accountType} sedang ditutup.`,
       },
       { status: 403 },
     );
   }
 
   try {
-    const { code, total } = await createOrder(parsed.data);
-    return NextResponse.json({ ok: true, code, total }, { status: 201 });
+    const { code, total, itemCount, ticketCount } = await createServiceOrder(
+      parsed.data,
+    );
+    return NextResponse.json(
+      { ok: true, code, total, itemCount, ticketCount },
+      { status: 201 },
+    );
   } catch (error) {
     if (error instanceof OrderError) {
       return NextResponse.json(
@@ -84,7 +90,7 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    console.error("createOrder failed", error);
+    console.error("createServiceOrder failed", error);
     return NextResponse.json(
       { ok: false, error: "Terjadi kesalahan pada server." },
       { status: 500 },

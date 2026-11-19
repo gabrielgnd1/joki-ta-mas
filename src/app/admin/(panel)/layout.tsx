@@ -14,26 +14,29 @@ export default async function AdminPanelLayout({
   const [user, settings] = await Promise.all([requireUser(), getSettings()]);
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="container-page flex h-14 items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/admin"
-              className="text-sm font-extrabold tracking-tight text-sky-700 uppercase"
-            >
-              {settings.site_name}
-            </Link>
-            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-slate-500 uppercase">
-              Admin
+    <div className="min-h-screen bg-slate-50">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
+        <div className="container-page flex h-16 items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-base shadow-sm">
+              🎟️
             </span>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-extrabold tracking-tight text-slate-900">
+                {settings.site_name}
+              </div>
+              <div className="text-[10px] font-bold tracking-[0.16em] text-rose-600 uppercase">
+                Panel Admin
+              </div>
+            </div>
           </div>
+
           <div className="flex items-center gap-3">
             <div className="hidden text-right sm:block">
               <div className="text-xs font-semibold text-slate-700">
                 {user.name}
               </div>
-              <div className="text-[10px] tracking-wide text-slate-400 uppercase">
+              <div className="text-[10px] font-bold tracking-wide text-slate-400 uppercase">
                 {user.role === "admin" ? "Admin" : "Verifikator"}
               </div>
             </div>
@@ -44,7 +47,8 @@ export default async function AdminPanelLayout({
             </form>
           </div>
         </div>
-        <div className="border-t border-slate-100">
+
+        <div className="border-t border-slate-100 bg-white">
           <AdminNav isAdmin={user.role === "admin"} />
         </div>
       </header>

@@ -36,8 +36,8 @@ export default async function AdminTeamPage({
           Tim Admin
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Admin bisa mengatur event &amp; pengaturan. Verifikator hanya bisa
-          memproses pesanan.
+          Admin bisa mengatur pengaturan situs &amp; tim. Verifikator hanya
+          bisa memproses pesanan.
         </p>
       </div>
 
@@ -91,7 +91,10 @@ export default async function AdminTeamPage({
             </select>
           </div>
           <div className="sm:col-span-2 flex justify-end">
-            <button type="submit" className="btn-primary">
+            <button
+              type="submit"
+              className="rounded-xl bg-rose-600 px-5 py-3 text-sm font-extrabold text-white shadow-[0_10px_24px_-10px_rgba(225,29,72,0.9)] transition hover:bg-rose-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-rose-200"
+            >
               Tambah Anggota
             </button>
           </div>
@@ -130,7 +133,7 @@ export default async function AdminTeamPage({
                     <span
                       className={
                         user.role === "admin"
-                          ? "badge border-sky-200 bg-sky-50 text-sky-700"
+                          ? "badge border-rose-200 bg-rose-50 text-rose-700"
                           : "badge border-slate-200 bg-slate-50 text-slate-600"
                       }
                     >

@@ -79,6 +79,30 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS service_orders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT NOT NULL UNIQUE,
+  items TEXT NOT NULL,
+  item_count INTEGER NOT NULL,
+  ticket_count INTEGER NOT NULL,
+  total INTEGER NOT NULL,
+  service_types TEXT NOT NULL DEFAULT '',
+  customer_name TEXT NOT NULL,
+  account_type TEXT NOT NULL,
+  jkt_email TEXT NOT NULL,
+  jkt_password TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  verified_by TEXT,
+  verified_at TEXT,
+  internal_note TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_service_orders_status ON service_orders(status);
+CREATE INDEX IF NOT EXISTS idx_service_orders_created ON service_orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_service_orders_code ON service_orders(code);
 `;
 
 export const DEFAULT_SETTINGS: Record<string, string> = {

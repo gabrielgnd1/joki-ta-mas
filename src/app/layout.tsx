@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Joki Ta Mas? — Joki War Tiket Konser",
+  title: "Form Order Joki Tiket — 2S & MnG",
   description:
-    "Jasa joki war tiket konser. Isi form pemesanan, kirim bukti transfer via WhatsApp, dan lihat pricelist.",
+    "Form order jasa joki tiket 2-Shot (2S) dan Meet & Greet (MnG). Pilih member, lengkapi data akun JKT48, lalu kirim pesanan via WhatsApp.",
 };
 
 export default function RootLayout({

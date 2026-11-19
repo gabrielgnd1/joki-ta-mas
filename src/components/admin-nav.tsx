@@ -31,10 +31,9 @@ export function AdminNav({ isAdmin }: { isAdmin: boolean }) {
   }, [pathname]);
 
   const links = [
-    { href: "/admin", label: "Pesanan" },
-    { href: "/admin/event", label: "Event & Harga", adminOnly: true },
-    { href: "/admin/settings", label: "Pembayaran", adminOnly: true },
-    { href: "/admin/team", label: "Tim", adminOnly: true },
+    { href: "/admin", label: "Pesanan", icon: "📋" },
+    { href: "/admin/settings", label: "Pengaturan", icon: "⚙️", adminOnly: true },
+    { href: "/admin/team", label: "Tim", icon: "👥", adminOnly: true },
   ];
 
   return (
@@ -53,12 +52,13 @@ export function AdminNav({ isAdmin }: { isAdmin: boolean }) {
               aria-current={active ? "page" : undefined}
               aria-busy={pendingHref === link.href || undefined}
               className={[
-                "flex shrink-0 items-center rounded-md px-3 py-2 text-sm font-medium transition",
+                "flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-bold transition",
                 active
-                  ? "bg-sky-50 text-sky-700"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                  ? "bg-rose-600 text-white shadow-sm"
+                  : "text-slate-600 hover:bg-rose-50 hover:text-rose-700",
               ].join(" ")}
             >
+              <span aria-hidden="true">{link.icon}</span>
               {link.label}
               <PendingSpinner />
             </Link>

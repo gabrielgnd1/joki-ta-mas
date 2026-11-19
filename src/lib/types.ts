@@ -7,45 +7,34 @@ export type OrderStatus =
 
 export type Role = "admin" | "verifier";
 
-export type SectionRow = {
-  id: number;
-  event_id: number;
-  code: string;
-  price: number;
-  is_open: number;
-  sort: number;
-};
+export type ServiceType = "2S" | "MnG";
 
-export type EventRow = {
-  id: number;
-  name: string;
-  venue: string | null;
-  show_at: string | null;
-  is_active: number;
-  max_tickets: number;
-};
-
-export type OrderRow = {
-  id: number;
-  code: string;
-  event_id: number;
-  event_name: string;
-  show_at: string | null;
-  ticket_type: string;
-  section_code: string;
-  section_price: number;
+/** Satu baris keranjang pesanan (disimpan sebagai JSON di `service_orders.items`). */
+export type OrderItem = {
+  serviceType: ServiceType;
+  team: string;
+  nickname: string;
+  fullName: string;
   qty: number;
+  sessionNote: string;
+  /** Hasil hitung server saat pesanan dibuat. */
+  subtotal: number;
+  /** Label harga saat pesanan dibuat, mis. "3 tiket (Paket 1–4 tiket)". */
+  priceLabel: string;
+};
+
+export type ServiceOrderRow = {
+  id: number;
+  code: string;
+  items: string;
+  item_count: number;
+  ticket_count: number;
   total: number;
-  backup_sections: string;
-  full_name: string;
-  x_username: string;
-  email: string;
-  whatsapp: string;
-  nik: string;
-  gender: string;
-  birth_date: string;
-  payment_method: string;
-  note: string | null;
+  service_types: string;
+  customer_name: string;
+  account_type: string;
+  jkt_email: string;
+  jkt_password: string;
   status: OrderStatus;
   verified_by: string | null;
   verified_at: string | null;
@@ -80,6 +69,12 @@ export const STATUS_BADGE: Record<OrderStatus, string> = {
   cancelled: "bg-slate-100 text-slate-600 border-slate-200",
 };
 
-export const PAYMENT_LABEL: Record<string, string> = {
-  QRIS: "QRIS",
-};
+/** Parse kolom `items` (JSON) dengan aman. */
+export function parseOrderItems(json: string): OrderItem[] {
+  try {
+    const parsed = JSON.parse(json || "[]");
+    return Array.isArray(parsed) ? (parsed as OrderItem[]) : [];
+  } catch {
+    return [];
+  }
+}

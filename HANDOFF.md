@@ -1,7 +1,7 @@
 # Panduan Lanjutan Proyek Joki Ta Mas?
 
 > Dokumen serah-terima untuk teman yang akan melanjutkan proyek ini.
-> Terakhir diperbarui: 10 November 2026.
+> Terakhir diperbarui: 19 November 2026.
 
 Dokumen ini menjelaskan **apa yang sudah jadi**, **cara menjalankannya**, **di mana harus mengubah sesuatu**, dan **apa yang sebaiknya dikerjakan berikutnya**. Untuk instruksi singkat, lihat juga [`README.md`](./README.md).
 
@@ -9,14 +9,16 @@ Dokumen ini menjelaskan **apa yang sudah jadi**, **cara menjalankannya**, **di m
 
 ## 1. Ringkasan proyek
 
-Joki Ta Mas? adalah website jasa **joki war tiket konser**. Pemesan mengisi form, memilih section, transfer fee joki, lalu mengirim bukti transfer ke admin lewat WhatsApp. Admin/verifikator mengecek bukti tersebut **secara manual** dan mengubah status pesanan.
+Joki Ta Mas? adalah website jasa **joki tiket JKT48** untuk layanan **2-Shot (2S)** dan **Meet & Greet (MnG)**. Pemesan memilih member di katalog, menambahkannya ke keranjang (boleh lebih dari satu member), melengkapi data akun JKT48, lalu rincian pesanan dikirim ke admin lewat **WhatsApp**. Admin mengecek ketersediaan slot & pembayaran **secara manual** dan mengubah status pesanan di panel admin.
+
+Versi sebelumnya (form 3 langkah untuk *war tiket konser* + halaman `/pricelist`) **sudah diganti total** oleh form ini. Tabel & data lama tidak dihapus.
 
 Yang **tidak** ada di proyek ini (memang di luar scope):
 
-- Joki VC / Meet & Greet / 2-shot.
+- Nomor WhatsApp pemesan **tidak diminta** di form. Cocokkan chat masuk memakai **kode pesanan** (`JTM-XXXXXX`) yang selalu ikut disertakan di pesan WhatsApp.
 - Verifikasi pembayaran otomatis (tidak ada integrasi payment gateway/mutasi bank).
-- Pembayaran selain **QRIS**.
-- Multi-event dalam satu halaman (saat ini satu event aktif, lihat bagian 8).
+- Upload file apa pun (bukti bayar, dsb.) — semuanya lewat chat WhatsApp.
+- Katalog member dikelola lewat **kode** (`src/lib/members.ts`), bukan lewat database/admin.
 
 ---
 
@@ -24,18 +26,18 @@ Yang **tidak** ada di proyek ini (memang di luar scope):
 
 Sudah selesai dan sudah diuji end-to-end:
 
-- Form pemesanan 3 langkah (event → section → data diri & pembayaran).
-- Perhitungan harga di server, kode pesanan `JTM-XXXXXX`.
-- Tombol kirim bukti transfer lewat WhatsApp (tanpa upload di web).
-- Pricelist dengan warna per section.
-- Panel admin: daftar pesanan, filter, pencarian, statistik, detail pesanan, verifikasi manual, catatan internal, ubah status manual.
-- Manajemen event & section (harga, buka/tutup).
-- Pengaturan situs (rekening, kontak, syarat, buka/tutup war, pengumuman).
+- Form pesanan di `/`: pilih layanan (2S/MnG) → filter tim → pilih member → jumlah tiket → tambah ke keranjang → isi data pemesan & akun JKT48 → submit.
+- Keranjang multi-member (maks. 30 item), batas qty 1–20, 2S selalu 1 tiket.
+- Perhitungan harga di server (`calculateItemCost`), kode pesanan `JTM-XXXXXX`.
+- Submit → pesanan tersimpan di `service_orders` → jendela WhatsApp ke admin terbuka berisi rincian + kode pesanan.
+- Panel admin baru (tema rose/slate): daftar pesanan, filter status, pencarian, statistik, detail pesanan (tabel item + kredensial akun dengan tombol tampil/salin), catatan internal, verifikasi status, ubah status manual.
+- Pengaturan: buka/tutup pemesanan, buka/tutup jenis akun (OFC / Non-OFC), pengumuman, nama situs, kontak WA.
 - Manajemen tim (tambah admin/verifikator, aktif/nonaktif, reset password).
-- Tema visual baru: langit biru, aksen emas, warna CAT sesuai seatplan.
+- Halaman lama yang dihapus: `/pricelist`, `/admin/event`, wizard 3 langkah, ilustrasi seatmap, header/footer/nav lama.
 
 Build produksi terakhir: **lulus** (`npm run build` bersih).
-Database pengujian sudah dihapus; database baru akan dibuat otomatis saat pertama kali dijalankan.
+
+Pengujian end-to-end terakhir (19 Nov 2026): submit dari browser → baris tersimpan di `data/jokitamas.db` → muncul pertama di `/admin` → detail & aksi status berfungsi → logout/login berfungsi → settings tersimpan ke DB. Tiga pesanan uji sengaja **disimpan sebagai contoh**: `JTM-PPFUZJ`, `JTM-BT7NR7`, `JTM-T9WCY4`.
 
 ---
 
@@ -79,7 +81,7 @@ Lihat `.env.example`:
 | `TURSO_DATABASE_URL` | — | URL database Turso (`libsql://...`) untuk produksi |
 | `TURSO_AUTH_TOKEN` | — | Token akses Turso |
 | `DATABASE_PATH` | `./data/jokitamas.db` | Lokasi file SQLite lokal (dipakai bila URL Turso kosong) |
-| `ADMIN_NAME` | `Admin Jokitamas` | Nama admin pertama (hanya saat DB kosong) |
+| `ADMIN_NAME` | `Admin Joki Ta Mas?` | Nama admin pertama (hanya saat DB kosong) |
 | `ADMIN_EMAIL` | `admin@jokitamas.local` | Email admin pertama |
 | `ADMIN_PASSWORD` | `admin123` | Password admin pertama |
 | `COOKIE_SECURE` | `false` | Set `true` saat sudah pakai HTTPS |
@@ -101,51 +103,57 @@ Lihat `.env.example`:
 
 | URL | File | Fungsi |
 | --- | --- | --- |
-| `/` | `src/app/page.tsx` | Hero + wizard pemesanan |
-| `/pricelist` | `src/app/pricelist/page.tsx` | Daftar fee per section |
+| `/` | `src/app/page.tsx` | Bungkus halaman (pengumuman + footer) → render `JokiOrderForm` |
+
+Form pesanannya sendiri ada di `src/components/joki-order-form.tsx` (client component, ±600 baris).
 
 ### Panel admin
 
 | URL | File | Akses | Fungsi |
 | --- | --- | --- | --- |
 | `/admin/login` | `src/app/admin/login/page.tsx` | publik | Form login |
-| `/admin` | `src/app/admin/(panel)/page.tsx` | admin + verifier | Daftar pesanan, filter, statistik |
-| `/admin/orders/[id]` | `src/app/admin/(panel)/orders/[id]/page.tsx` | admin + verifier | Detail, verifikasi manual |
-| `/admin/event` | `src/app/admin/(panel)/event/page.tsx` | **admin saja** | Ubah event, harga, buka/tutup section |
-| `/admin/settings` | `src/app/admin/(panel)/settings/page.tsx` | **admin saja** | Rekening, kontak, syarat, pengumuman |
+| `/admin` | `src/app/admin/(panel)/page.tsx` | admin + verifier | Daftar pesanan, filter, pencarian, statistik |
+| `/admin/orders/[id]` | `src/app/admin/(panel)/orders/[id]/page.tsx` | admin + verifier | Detail, kredensial akun, catatan, ubah status |
+| `/admin/settings` | `src/app/admin/(panel)/settings/page.tsx` | **admin saja** | Pemesanan, jenis akun, pengumuman, kontak |
 | `/admin/team` | `src/app/admin/(panel)/team/page.tsx` | **admin saja** | Kelola akun tim |
+
+Navigasi panel: **Pesanan**, **Pengaturan** (admin saja), **Tim** (admin saja) — `src/components/admin-nav.tsx`.
 
 ### API routes
 
 | Endpoint | Method | Fungsi |
 | --- | --- | --- |
-| `/api/orders` | `POST` | Membuat pesanan (validasi Zod + rate limit + honeypot) |
+| `/api/orders` | `POST` | Membuat pesanan (validasi Zod + rate limit + honeypot + gate jenis akun) |
+
+Server Actions: `src/app/actions/admin.ts` (status, catatan, settings, tim) dan `src/app/actions/auth.ts` (login/logout).
 
 ---
 
 ## 5. Alur bisnis
 
 ```
-Pemesan isi form
+Pemesan isi form (bisa banyak member)
       │
       ▼
-POST /api/orders  ──►  status: pending  (kode JTM-XXXXXX)
+POST /api/orders  ──►  simpan 1 baris di service_orders
+      │                (status: pending, kode JTM-XXXXXX,
+      │                 harga dihitung ulang di server)
+      ▼
+Jendela WhatsApp ke admin terbuka, berisi rincian + KODE pesanan
       │
       ▼
-Bayar via QRIS, kirim bukti ke admin via WhatsApp
+Admin mencocokkan chat dengan pesanan via kode, cek slot & pembayaran
       │
       ▼
-Admin buka detail, cocokkan nominal & tujuan transfer
-      │
-      ▼
-Klik "Verifikasi Pembayaran"  ──►  status: verified
-      │                            (verified_by + verified_at tercatat)
+Klik "✓ Tandai Sudah Dikonfirmasi"  ──►  status: verified
+      │                                  (verified_by + verified_at tercatat)
       ▼
 Tiket didapat → admin tandai "Selesai"  ──►  status: completed
 ```
 
 Status lain:
 
+- `review` — Menunggu Verifikasi (dipakai bila admin ingin tahap cek dulu).
 - `cancelled` — dibatalkan admin.
 - Admin juga bisa mengubah status manual lewat dropdown di halaman detail.
 
@@ -167,14 +175,15 @@ Definisi label ada di `src/lib/types.ts` (`STATUS_LABEL`, `STATUS_BADGE`).
 
 Jangan ubah tanpa sadar, karena ini menyangkut uang dan data pribadi:
 
-1. **Harga selalu dihitung ulang di server** dari tabel `sections`. Client hanya mengirim `sectionCode`, `qty`, dll. Jangan pernah percaya `total` dari client.
-2. **Maksimal tiket per pesanan** disimpan di `events.max_tickets` (default 4, dibatasi 1–10 di form admin).
-3. **Section cadangan** maksimal 10, hanya boleh kode section yang valid, dan tidak boleh sama dengan section utama.
-4. **Metode pembayaran hanya** `QRIS` (validasi Zod).
-5. **Tidak ada verifikasi otomatis.** Status `verified` hanya berubah lewat tombol admin (`updateOrderStatusAction`).
-6. **Kode pesanan** memakai alfabet tanpa karakter ambigu (`ABCDEFGHJKLMNPQRSTUVWXYZ23456789`), format `JTM-` + 6 karakter.
-7. **Bukti transfer tidak disimpan di server.** Pemesan mengirimkannya ke admin via WhatsApp; admin mencocokkan manual sebelum verifikasi.
-8. **Tiket war hanya konser.** Jangan tambahkan layanan VC/M&G/2-shot ke form tanpa mengubah alur & harga.
+1. **Harga selalu dihitung ulang di server** dari katalog `src/lib/members.ts`. Client hanya mengirim `team`, `nickname`, `serviceType`, `qty`. Jangan pernah percaya `subtotal`/`total` dari client.
+2. **2S selalu 1 tiket** per item (field qty dinonaktifkan di form).
+3. **MnG memakai tarif paket flat**, tidak dikalikan jumlah tiket: qty 1–4 pakai `mngLow`, qty 5–20 pakai `mngHigh`. Batas ketat 1–20 (dibatasi juga oleh Zod & server).
+4. **Keranjang maksimal 30 item** per pesanan (Zod `.max(30)`).
+5. **Gate jenis akun:** settings `ticket_ofc_enabled` = pemesanan akun OFC, `ticket_general_enabled` = Non-OFC. Nonaktifkan salah satu untuk menutup jenis tersebut (API membalas 403).
+6. **Tidak ada verifikasi otomatis.** Status hanya berubah lewat tombol/dropdown admin (`updateOrderStatusAction`).
+7. **Kode pesanan** memakai alfabet tanpa karakter ambigu (`ABCDEFGHJKLMNPQRSTUVWXYZ23456789`), format `JTM-` + 6 karakter, selalu disertakan di pesan WhatsApp supaya admin bisa mencocokkan chat → baris DB.
+8. **Kredensial akun JKT48 pemesan** (email + password) disimpan dan ditampilkan hanya di panel admin, lengkap dengan peringatan. Jangan pernah menampilkannya di halaman publik.
+9. **Tidak ada field WhatsApp pemesan** — keputusan desain. Jangan menambahkannya tanpa membahas ulang.
 
 ---
 
@@ -185,46 +194,46 @@ jokitamas/
 ├─ src/
 │  ├─ app/
 │  │  ├─ layout.tsx              # Root layout, metadata, font global
-│  │  ├─ globals.css             # Tema Tailwind 4 (warna, .card, .btn-*, .input)
-│  │  ├─ page.tsx                # Halaman utama (hero + wizard)
-│  │  ├─ pricelist/page.tsx      # Pricelist
+│  │  ├─ globals.css             # Tailwind 4 + tema admin + CSS form (.joki-form)
+│  │  ├─ page.tsx                # Halaman utama (pengumuman, footer, render form)
 │  │  ├─ admin/
 │  │  │  ├─ login/page.tsx
 │  │  │  └─ (panel)/             # Layout admin (wajib login)
 │  │  │     ├─ layout.tsx
 │  │  │     ├─ page.tsx          # Dashboard/daftar pesanan
 │  │  │     ├─ orders/[id]/page.tsx
-│  │  │     ├─ event/page.tsx
 │  │  │     ├─ settings/page.tsx
 │  │  │     └─ team/page.tsx
 │  │  ├─ actions/                # Server Actions
-│  │  │  ├─ admin.ts             # Status, catatan, event, section, settings, tim
+│  │  │  ├─ admin.ts             # Status, catatan, settings, tim
 │  │  │  └─ auth.ts              # Login/logout
 │  │  └─ api/
-│  │     └─ orders/route.ts
+│  │     └─ orders/route.ts      # POST pesanan
 │  ├─ components/
-│  │  ├─ order-wizard.tsx        # Wizard 3 langkah (client component)
-│  │  ├─ arena-art.tsx           # Ilustrasi seatmap SVG
-│  │  ├─ site-header.tsx / site-nav-links.tsx / site-footer.tsx
+│  │  ├─ joki-order-form.tsx     # Form pesanan 2S/MnG + keranjang (client)
+│  │  ├─ secret-field.tsx        # Tombol tampil/salin untuk password
 │  │  ├─ admin-nav.tsx           # Navigasi panel admin
 │  │  └─ status-badge.tsx
 │  └─ lib/
 │     ├─ db.ts                   # Koneksi SQLite, skema, seed awal
+│     ├─ members.ts              # KATALOG member + tarif + calculateItemCost
+│     ├─ service-orders.ts       # Query pesanan (service_orders), statistik, create
+│     ├─ wa-message.ts           # Susun URL wa.me berisi rincian pesanan
 │     ├─ auth.ts                 # Sesi login (cookie httpOnly + tabel sessions)
-│     ├─ password.ts             # scrypt, sha256, generator kode
-│     ├─ orders.ts               # Query pesanan, statistik, createOrder
+│     ├─ password.ts             # scrypt, sha256, generator kode pesanan
 │     ├─ settings.ts             # Baca/tulis settings
-│     ├─ validation.ts           # Skema Zod
+│     ├─ validation.ts           # Skema Zod (jokiOrderInputSchema, loginSchema)
 │     ├─ rate-limit.ts           # Rate limit in-memory
-│     ├─ palette.ts              # Warna CAT 1–7
 │     ├─ format.ts               # Format rupiah/tanggal (Asia/Jakarta)
-│     └─ types.ts                # Tipe DB, label status, label pembayaran
+│     └─ types.ts                # Tipe DB, label status, OrderItem
 ├─ data/                         # TIDAK di-commit (gitignored)
 │  └─ jokitamas.db
 ├─ HANDOFF.md                    # Dokumen ini
 ├─ README.md
 └─ ...config
 ```
+
+File lama yang **sudah dihapus**: `src/lib/orders.ts`, `src/lib/palette.ts`, `src/components/order-wizard.tsx`, `arena-art.tsx`, `site-header.tsx`, `site-footer.tsx`, `site-nav-links.tsx`, `src/app/pricelist/`, `src/app/admin/(panel)/event/`.
 
 ---
 
@@ -234,41 +243,42 @@ Database SQLite/libSQL diakses lewat `@libsql/client`. Lokal memakai file `data/
 
 ### Tabel
 
-| Tabel | Isi |
-| --- | --- |
-| `users` | Akun admin/verifikator (`role`: `admin` / `verifier`, `active` 0/1) |
-| `sessions` | Sesi login; menyimpan `token_hash`, bukan token asli |
-| `events` | Event aktif (`is_active`), `max_tickets` |
-| `sections` | Kategori per event (`code`, `price`, `is_open`, `sort`) |
-| `orders` | Semua pesanan + data identitas + status |
-| `settings` | Key-value pengaturan situs |
+| Tabel | Status | Isi |
+| --- | --- | --- |
+| `users` | aktif | Akun admin/verifikator (`role`: `admin` / `verifier`, `active` 0/1) |
+| `sessions` | aktif | Sesi login; menyimpan `token_hash`, bukan token asli |
+| `service_orders` | aktif | **Semua pesanan baru** (lihat di bawah) |
+| `settings` | aktif | Key-value pengaturan situs |
+| `orders` | **legacy** | Pesanan war tiket lama — tidak dipakai aplikasi, data tidak dihapus |
+| `events`, `sections` | **legacy** | Event/section war tiket lama — tidak dipakai UI (seed masih membuat 1 event contoh, tidak berbahaya) |
 
-Detail kolom penting di `orders`:
+### Kolom `service_orders`
 
-- `code` — kode unik pesanan.
-- `event_name`, `show_at` — **snapshot** event saat pesanan dibuat (event boleh berubah nanti tanpa mengubah riwayat).
-- `section_code`, `section_price`, `qty`, `total` — snapshot harga.
-- `backup_sections` — JSON array kode section cadangan.
+- `code` — kode unik pesanan (`JTM-XXXXXX`).
+- `items` — **JSON array** keranjang: `[{ serviceType, team, nickname, fullName, qty, sessionNote, subtotal, priceLabel }]`. Satu baris DB per pesanan (bukan per item).
+- `item_count`, `ticket_count`, `total` — agregat hasil hitung server.
+- `service_types` — gabungan layanan, mis. `2S+MnG`.
+- `customer_name`, `account_type` (`OFC`/`Non-OFC`), `jkt_email`, `jkt_password` — data pemesan & akun JKT48 (password **plain text**, lihat bagian 10).
 - `status` — salah satu dari 5 status di atas.
 - `verified_by`, `verified_at` — diisi saat admin memverifikasi.
 - `internal_note` — catatan admin, tidak dilihat pemesan.
+- `created_at`, `updated_at` — ISO string.
 
 ### Settings keys
 
-`site_name`, `site_tagline`, `wa_number`, `wa_number_2` (opsional), `x_username`, `qris_merchant`, `qris_nmid`, `qris_image`, `qris_note`, `payment_note`, `terms`, `orders_open` (`"1"`/`"0"`), `ticket_ofc_enabled` (`"1"`/`"0"`), `ticket_general_enabled` (`"1"`/`"0"`), `announcement`.
+`site_name`, `site_tagline`, `wa_number`, `wa_number_2` (opsional), `x_username`, `orders_open` (`"1"`/`"0"`), `ticket_ofc_enabled` (`"1"`/`"0"`), `ticket_general_enabled` (`"1"`/`"0"`), `announcement`.
 
 Default lengkap ada di `DEFAULT_SETTINGS` (`src/lib/db.ts`).
+
+Catatan: key lama `qris_*`, `payment_note`, `terms` **masih ada di database** tetapi sudah tidak ditampilkan di UI dan tidak dipakai form baru. `site_tagline` juga masih tersimpan (default lamanya "Joki War Tiket Konser") tetapi tidak dirender di mana pun.
 
 ### Data awal (seed)
 
 Saat database kosong, otomatis dibuat:
 
 - 1 akun admin dari env `ADMIN_*`.
-- 1 event: *AYO SENYUMLAH | JKT48 15th Anniversary Concert*, 19 Des 2026 18:30 WIB, Jakarta, maks 4 tiket.
-- 7 section: CAT 1 Rp 400.000 (tutup), CAT 2 Rp 350.000, CAT 3 Rp 320.000, CAT 4 Rp 300.000, CAT 5 Rp 250.000, CAT 6 Rp 220.000, CAT 7 Rp 200.000.
 - Settings default.
-
-Harga/section/event ini **contoh** — ganti lewat `/admin/event` atau ubah seed di `src/lib/db.ts`.
+- 1 event + 7 section contoh (warisan versi lama; tidak dipakai halaman mana pun).
 
 ### Backup & reset
 
@@ -284,33 +294,19 @@ Reset total (hati-hati, semua pesanan hilang):
 rm -rf data/
 ```
 
-Database baru + admin + event contoh akan dibuat saat aplikasi dijalankan lagi.
+Database baru + admin akan dibuat saat aplikasi dijalankan lagi.
 
 ---
 
 ## 9. Desain & tema
 
-Tema mengikuti gambar seatplan konser: langit biru, aksen emas, warna kategori cerah.
+Tema baru (menggantikan tema "langit biru & emas"):
 
-- Font: **Baloo 2** (display) + **Plus Jakarta Sans** (body), diimpor di `src/app/globals.css`.
-- Latar: gradien langit biru (`background-image` di `globals.css`).
-- Komponen utility: `.card`, `.btn-primary` (emas), `.btn-secondary`, `.input`, `.badge`.
-- Warna CAT ada di `src/lib/palette.ts`:
-
-| Section | Warna |
-| --- | --- |
-| CAT 1 | Merah `#e53935` |
-| CAT 2 | Kuning `#fdd835` |
-| CAT 3 | Ungu `#8e24aa` |
-| CAT 4 | Oranye `#fb8c00` |
-| CAT 5 | Hijau `#43a047` |
-| CAT 6 | Biru `#1e88e5` |
-| CAT 7 | Pink `#f06292` |
-
-`colorForSection(code)` membaca angka dari kode (mis. `CAT 3` → warna ke-3). Kalau nanti ada kategori baru, tambahkan ke `SECTION_PALETTE`.
-
-Ilustrasi seatmap: `src/components/arena-art.tsx`.
-Layout utama: dua kolom — poster + ringkasan (kiri, sticky) dan kartu form (kanan).
+- **Halaman publik `/`**: mengikuti form statis sumbernya — latar `#f8fafc`, kartu putih, aksen **rose** (`#e11d48`), tombol hijau WhatsApp (`#16a34a`), font sistem (`-apple-system, ...`). Semua style di-scope di bawah `.joki-form` pada `src/app/globals.css` agar tidak bocor ke halaman admin.
+  - Rename class yang dilakukan saat porting: `.container` → `.joki-shell`, `.section-title` → `.joki-section-title` (hindari tabrakan dengan Tailwind/global).
+- **Panel admin**: rose + slate (`bg-rose-600` untuk nav aktif, badge status memakai warna Tailwind: amber/violet/emerald/sky/slate).
+- Font: **Baloo 2** + **Plus Jakarta Sans** masih diimpor di `globals.css` (dipakai admin & layout); form publik memakai font sistem.
+- Komponen utility admin: `.container-page`, `.card`, `.btn-*`, `.input`, `.label` — lihat `globals.css`.
 
 ---
 
@@ -318,23 +314,24 @@ Layout utama: dua kolom — poster + ringkasan (kiri, sticky) dan kartu form (ka
 
 Sudah ada:
 
-- Password di-hash **scrypt** dengan salt (`src/lib/password.ts`).
+- Password admin di-hash **scrypt** dengan salt (`src/lib/password.ts`).
 - Sesi di database + cookie `httpOnly`, `sameSite=lax`, `secure` mengikuti `COOKIE_SECURE`.
 - Semua query memakai prepared statement (aman dari SQL injection).
-- Validasi input server-side dengan Zod.
+- Validasi input server-side dengan Zod (`jokiOrderInputSchema`).
 - Rate limit: pesanan 8×/10 menit/IP, login 10×/10 menit/IP.
-- Honeypot field `website` di form pesanan.
-- Harga dihitung ulang di server.
-- Bukti transfer tidak disimpan di server; hanya dikirim via WhatsApp.
-- Role `verifier` tidak bisa membuka event/settings/team (redirect ke `/admin`).
+- Honeypot field `website` di form pesanan (bot yang mengisi → ditolak).
+- Harga dihitung ulang di server; data harga client diabaikan.
+- Role `verifier` tidak bisa membuka settings/team (redirect ke `/admin`).
+- **Password akun JKT48 pemesan disimpan plain text** di `service_orders.jkt_password` — memang disengaja agar admin bisa login ke akun tersebut untuk joki, tapi: hanya tampil di panel admin (tombol tampil/salin + peringatan), dan tidak pernah dikirim ke mana pun selain WhatsApp milik admin.
 
 Belum ada / bisa ditingkatkan:
 
 - Rate limit masih **in-memory** — hilang saat restart dan tidak akurat bila multi-instance. Untuk produksi serius, pindah ke Redis/DB.
 - Belum ada audit log perubahan status (siapa mengubah apa dan kapan, selain `verified_by`).
 - Belum ada CSRF token eksplisit (Server Actions Next.js sudah punya proteksi origin, tapi tetap perlu dipahami).
-- Belum ada fitur hapus/arsip pesanan lama.
+- Belum ada fitur hapus/arsip pesanan.
 - Belum ada notifikasi otomatis (email/WA) saat status berubah.
+- Belum ada enkripsi at-rest untuk `jkt_password`.
 
 ---
 
@@ -378,10 +375,9 @@ COOKIE_SECURE=true npm start   # di belakang reverse proxy HTTPS
 Checklist sebelum live:
 
 - [ ] Ganti `ADMIN_PASSWORD` sebelum database pertama kali dibuat, atau ganti lewat menu Tim.
-- [ ] Isi data QRIS asli (merchant, NMID, gambar) di `/admin/settings`.
-- [ ] Ganti nomor WA (utama + cadangan) & username X.
-- [ ] Sesuaikan syarat & ketentuan.
-- [ ] Set harga section & event yang benar.
+- [ ] Ganti nomor WA utama di `/admin/settings` (`wa_number`) — dipakai form untuk membuka chat admin.
+- [ ] Cek katalog & harga member di `src/lib/members.ts` sesuai tarif terbaru.
+- [ ] Pastikan gate OFC/Non-OFC sesuai kebijakan (keduanya default aktif).
 - [ ] Set `COOKIE_SECURE=true` dan pasang HTTPS.
 - [ ] Backup database (Turso dashboard / `turso db shell .dump`, atau folder `data/` bila lokal).
 - [ ] Pastikan koneksi Turso memakai HTTPS dan token valid.
@@ -407,23 +403,23 @@ server {
 Prioritas tinggi:
 
 1. **Audit log status** — tabel `order_logs` (order_id, actor, from_status, to_status, note, created_at). Ditampilkan di detail pesanan.
-2. **Notifikasi WhatsApp** — tombol "Kirim update ke pemesan" yang membuka `wa.me` dengan template pesan status. Murah, tanpa API berbayar.
-3. **Rate limit persisten** — pindahkan `src/lib/rate-limit.ts` ke DB/Redis.
-4. **Export CSV** — daftar pesanan untuk rekap fee & rekap data tiket.
-5. **Arsip event** — dukungan banyak event sekaligus (pemilihan event di form), arsip event lama.
+2. **Notifikasi WhatsApp** — tombol "Kirim update ke pemesan" yang membuka `wa.me` dengan template pesan status. Murah, tanpa API berbayar. (Nomor pemesan tidak tersimpan — perlu keputusan: minta nomor, atau kirim update ke admin saja.)
+3. **Katalog member di database** — pindahkan `members.ts` ke tabel + halaman admin supaya harga bisa diubah tanpa deploy.
+4. **Rate limit persisten** — pindahkan `src/lib/rate-limit.ts` ke DB/Redis.
+5. **Export CSV** — daftar pesanan untuk rekap fee & rekap data tiket.
 
 Prioritas menengah:
 
 6. Hapus/soft-delete pesanan duplikat atau spam.
-7. Halaman statistik sederhana (per section, per hari, conversion rate).
-8. Template pesan otomatis (instruksi bayar) yang bisa diedit dari settings.
+7. Enkripsi `jkt_password` (atau minimal audit akses).
+8. Halaman statistik sederhana (per tim, per layanan, per hari).
 9. Ganti password sendiri untuk semua role (saat ini reset lewat admin).
 10. CAPTCHA ringan di form pesanan bila spam bot meningkat.
 
 Teknis:
 
-11. Tambah test (Vitest/Playwright) untuk `createOrder` dan alur verifikasi.
-12. Migrasi skema berversi (saat ini `CREATE TABLE IF NOT EXISTS`; perubahan kolom harus manual).
+11. Tambah test (Vitest/Playwright) untuk `createServiceOrder`, `calculateItemCost`, dan alur verifikasi.
+12. Migrasi skema berversi (saat ini `CREATE TABLE IF NOT EXISTS`; perubahan kolom harus manual) + bersihkan tabel legacy `orders`/`events`/`sections` bila sudah yakin tidak butuh.
 13. Optimasi query daftar pesanan bila data sudah banyak.
 14. Aksesibilitas: audit kontras, fokus keyboard, label form.
 
@@ -433,26 +429,28 @@ Teknis:
 
 - **Bahasa UI:** Indonesia. Nama variabel/kode: Inggris (konsisten dengan kode yang ada).
 - **Format uang/tanggal:** selalu lewat `src/lib/format.ts` (zona waktu `Asia/Jakarta`). Jangan format manual.
-- **Harga:** jangan pernah dipercaya dari client.
-- **Komponen server vs client:** default server component. Tambahkan `"use client"` hanya bila butuh state/event (contoh: `order-wizard.tsx`, `admin-nav.tsx`).
+- **Harga:** jangan pernah dipercaya dari client — hitung lewat `calculateItemCost`.
+- **Komponen server vs client:** default server component. Tambahkan `"use client"` hanya bila butuh state/event (contoh: `joki-order-form.tsx`, `admin-nav.tsx`).
 - **Mutasi data:** gunakan Server Actions di `src/app/actions/` untuk form admin; API route untuk hal yang dipanggil `fetch` dari client.
 - **Setelah mengubah data:** panggil `revalidatePath(...)` untuk halaman terkait.
 - **Query DB:** selalu prepared statement (`db.prepare(...).run/get/all`).
-- **Warna section:** ambil dari `colorForSection`, jangan hardcode di banyak tempat.
-- **Commit:** pesan jelas, mis. `feat: audit log status pesanan`, `fix: validasi NIK`.
+- **CSS:** style halaman publik wajib di-scope di bawah `.joki-form`; jangan menambah class global yang bisa bocor.
+- **Commit:** pesan jelas, mis. `feat: form pesanan 2S/MnG`, `fix: validasi qty MnG`.
 - **Sebelum push:** jalankan `npm run build` dan pastikan tidak ada error TypeScript.
 
 ### Di mana mengubah hal umum
 
 | Ingin mengubah... | File |
 | --- | --- |
-| Teks/hero halaman utama | `src/app/page.tsx` |
-| Langkah & field form | `src/components/order-wizard.tsx` |
+| Teks/judul halaman utama | `src/app/page.tsx`, `src/components/joki-order-form.tsx` |
+| Field & langkah form pesanan | `src/components/joki-order-form.tsx` |
+| Harga/katalog member | `src/lib/members.ts` |
 | Validasi field | `src/lib/validation.ts` |
+| Isi pesan WhatsApp | `src/lib/wa-message.ts` |
 | Teks status & warna badge | `src/lib/types.ts` |
-| Tema warna/font/tombol | `src/app/globals.css`, `src/lib/palette.ts` |
+| Tema warna/font/tombol | `src/app/globals.css` |
 | Struktur DB / data seed | `src/lib/db.ts` |
-| Logika pesanan & statistik | `src/lib/orders.ts` |
+| Logika pesanan & statistik | `src/lib/service-orders.ts` |
 | Aksi admin | `src/app/actions/admin.ts` |
 | Tampilan admin | `src/app/admin/(panel)/**` |
 | Rate limit | `src/lib/rate-limit.ts` |
@@ -473,6 +471,9 @@ Env hanya dipakai saat tabel `users` kosong. Ubah lewat menu **Tim**, atau reset
 
 **Data terlihat "hilang" setelah ganti folder / deploy**
 Di lokal, pastikan `DATABASE_PATH` menunjuk ke file yang benar. Di Vercel, pastikan `TURSO_DATABASE_URL` dan `TURSO_AUTH_TOKEN` terisi — tanpa itu aplikasi memakai file sementara yang hilang.
+
+**Pesanan tidak muncul di `/admin`**
+Pastikan submit berhasil (halaman menampilkan kode pesanan `JTM-XXXXXX`) dan Anda melihat tabel `service_orders`. Pesanan lama di tabel `orders` tidak akan tampil.
 
 **Login selalu gagal / balik ke halaman login**
 Cek `COOKIE_SECURE`: kalau `true` tapi diakses lewat HTTP, cookie tidak dikirim. Set `false` untuk development.
@@ -495,4 +496,4 @@ Hentikan server, `rm -rf data/ .next/`, lalu `npm run dev`.
 - Default admin: `admin@jokitamas.local` / `admin123` — **ganti segera**
 - Pemilik proyek: @gabrielgnd1
 
-Kalau ada yang tidak jelas, baca dulu kode di `src/lib/` (logika inti) dan `src/app/actions/` (mutasi data) — sebagian besar alur bisnis ada di dua tempat itu.
+Kalau ada yang tidak jelas, baca dulu kode di `src/lib/` (logika inti), `src/lib/members.ts` (harga) dan `src/app/actions/` (mutasi data) — sebagian besar alur bisnis ada di tempat itu.
