@@ -144,6 +144,21 @@ type GlobalDb = typeof globalThis & {
   __jtmInit?: Promise<void>;
 };
 
+/**
+ * Rename nickname member yang sudah ada di database.
+ *
+ * `nickname` dipakai sebagai kunci sinkronisasi seed (`team + nickname`),
+ * jadi rename WAJIB dijalankan SEBELUM `INSERT OR IGNORE` — kalau tidak,
+ * member lama akan muncul lagi dengan nama lama di samping nama baru.
+ */
+const MEMBER_RENAMES: Array<{ team: string; from: string; to: string }> = [
+  {
+    team: "TEAM LOVE",
+    from: "Nayla",
+    to: "Nayla Kawaii Katanya Sayang gndsparkling",
+  },
+];
+
 function now(): string {
   return new Date().toISOString();
 }
@@ -183,6 +198,16 @@ async function seed(client: Client): Promise<void> {
   );
   if (settingStatements.length) {
     await client.batch(settingStatements, "write");
+  }
+
+  if (MEMBER_RENAMES.length) {
+    await client.batch(
+      MEMBER_RENAMES.map(({ team, from, to }) => ({
+        sql: "UPDATE member_catalog SET nickname = ? WHERE team = ? AND nickname = ?",
+        args: [to, team, from],
+      })),
+      "write",
+    );
   }
 
   // Sinkronkan roster member dari kode ke tabel member_catalog.

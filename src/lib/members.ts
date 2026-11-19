@@ -32,7 +32,7 @@ export const MEMBER_TEAMS: MemberGroup[] = [
       { nickname: "Anin", fullName: "Anindya Ramadhani", price2s: 60000, mngLow: 20000, mngHigh: 30000 },
       { nickname: "Lia", fullName: "Aurellia", price2s: 60000, mngLow: 20000, mngHigh: 30000 },
       { nickname: "Cynthia", fullName: "Cynthia Yaputera", price2s: 60000, mngLow: 20000, mngHigh: 30000 },
-      { nickname: "Nayla", fullName: "Nayla Suji", price2s: 60000, mngLow: 20000, mngHigh: 30000 },
+      { nickname: "Nayla Kawaii Katanya Sayang gndsparkling", fullName: "Nayla Suji", price2s: 60000, mngLow: 20000, mngHigh: 30000 },
       { nickname: "Lana", fullName: "Aurhel Alana", price2s: 70000, mngLow: 20000, mngHigh: 30000 },
       { nickname: "Fritzy", fullName: "Fritzy Rosmerian", price2s: 70000, mngLow: 20000, mngHigh: 30000 },
       { nickname: "Gracie", fullName: "Grace Octaviani", price2s: 70000, mngLow: 30000, mngHigh: 40000 },
