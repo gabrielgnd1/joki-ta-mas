@@ -32,6 +32,7 @@ export function AdminNav({ isAdmin }: { isAdmin: boolean }) {
 
   const links = [
     { href: "/admin", label: "Pesanan", icon: "📋" },
+    { href: "/admin/katalog", label: "Katalog", icon: "🧮", adminOnly: true },
     { href: "/admin/settings", label: "Pengaturan", icon: "⚙️", adminOnly: true },
     { href: "/admin/team", label: "Tim", icon: "👥", adminOnly: true },
   ];

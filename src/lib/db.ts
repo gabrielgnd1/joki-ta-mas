@@ -2,6 +2,7 @@ import { createClient, type Client } from "@libsql/client";
 import fs from "node:fs";
 import path from "node:path";
 import { hashPassword } from "./password";
+import { MEMBER_TEAMS } from "./members";
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
@@ -103,6 +104,18 @@ CREATE TABLE IF NOT EXISTS service_orders (
 CREATE INDEX IF NOT EXISTS idx_service_orders_status ON service_orders(status);
 CREATE INDEX IF NOT EXISTS idx_service_orders_created ON service_orders(created_at);
 CREATE INDEX IF NOT EXISTS idx_service_orders_code ON service_orders(code);
+
+CREATE TABLE IF NOT EXISTS member_catalog (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  team TEXT NOT NULL,
+  nickname TEXT NOT NULL,
+  full_name TEXT NOT NULL,
+  price_2s INTEGER NOT NULL,
+  mng_low INTEGER NOT NULL,
+  mng_high INTEGER NOT NULL,
+  sort INTEGER NOT NULL DEFAULT 0,
+  UNIQUE(team, nickname)
+);
 `;
 
 export const DEFAULT_SETTINGS: Record<string, string> = {
@@ -170,6 +183,32 @@ async function seed(client: Client): Promise<void> {
   );
   if (settingStatements.length) {
     await client.batch(settingStatements, "write");
+  }
+
+  // Sinkronkan roster member dari kode ke tabel member_catalog.
+  // INSERT OR IGNORE: member baru dari kode ikut masuk, tetapi harga yang
+  // sudah diedit lewat /admin/katalog TIDAK ditimpa.
+  let memberSort = 0;
+  const memberStatements: Array<{ sql: string; args: Array<string | number> }> =
+    [];
+  for (const group of MEMBER_TEAMS) {
+    for (const member of group.members) {
+      memberStatements.push({
+        sql: "INSERT OR IGNORE INTO member_catalog (team, nickname, full_name, price_2s, mng_low, mng_high, sort) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        args: [
+          group.team,
+          member.nickname,
+          member.fullName,
+          member.price2s,
+          member.mngLow,
+          member.mngHigh,
+          memberSort++,
+        ],
+      });
+    }
+  }
+  if (memberStatements.length) {
+    await client.batch(memberStatements, "write");
   }
 
   const countsResult = await client.execute(

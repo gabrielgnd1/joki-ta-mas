@@ -1,15 +1,13 @@
-import { calculateItemCost, findMember, SERVICE_LABEL } from "./members";
+import { SERVICE_LABEL } from "./members";
 import { formatRupiah } from "./format";
-import type { ServiceType } from "./types";
+import type { OrderItem } from "./types";
 
-export type WaCartItem = {
-  serviceType: ServiceType;
-  team: string;
-  nickname: string;
-  fullName: string;
-  qty: number;
-  sessionNote: string;
-};
+/**
+ * Item untuk pesan WhatsApp. Pakai `OrderItem` hasil hitung server
+ * (sudah berisi `subtotal` + `priceLabel` tersimpan di database) supaya
+ * pesan yang diterima admin selalu sama dengan total di panel.
+ */
+export type WaCartItem = OrderItem;
 
 /**
  * Susun pesan WhatsApp berisi rincian pesanan (format sama dengan form
@@ -36,20 +34,15 @@ export function buildOrderWhatsAppUrl({
   let totalTickets = 0;
 
   const itemLines = items.map((item, idx) => {
-    const member = findMember(item.team, item.nickname);
-    const { subtotal, detailText } = member
-      ? calculateItemCost(member, item.serviceType, item.qty)
-      : { subtotal: 0, detailText: `${item.qty} tiket` };
-
-    grandTotal += subtotal;
+    grandTotal += item.subtotal;
     totalTickets += item.qty;
 
     const details = [
       `*${idx + 1}. ${item.nickname} (${item.fullName})*`,
       `   • Layanan: ${SERVICE_LABEL[item.serviceType]} (${item.team})`,
       item.sessionNote ? `   • Sesi/Jalur: ${item.sessionNote}` : null,
-      `   • Detail: ${detailText}`,
-      `   • Biaya Jasa: *${formatRupiah(subtotal)}*`,
+      `   • Detail: ${item.priceLabel}`,
+      `   • Biaya Jasa: *${formatRupiah(item.subtotal)}*`,
     ].filter(Boolean);
 
     return details.join("\n");

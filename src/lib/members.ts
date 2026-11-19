@@ -4,9 +4,11 @@ import type { ServiceType } from "./types";
 /**
  * Katalog member JKT48 + tarif jasa (2S / MnG).
  *
- * Modul ini dipakai BERSAMA oleh halaman publik (client) dan API orders
- * (server). Harga TIDAK pernah dipercaya dari client — server selalu
- * menghitung ulang lewat `calculateItemCost` berdasarkan katalog ini.
+ * `MEMBER_TEAMS` di bawah adalah SEED / daftar member (roster) — disinkronkan
+ * ke tabel `member_catalog` saat aplikasi start. Harga yang berlaku diambil
+ * dari database (lihat `src/lib/member-catalog.ts`) supaya bisa diedit lewat
+ * /admin/katalog tanpa deploy. Harga TIDAK pernah dipercaya dari client —
+ * server selalu menghitung ulang lewat `calculateItemCost`.
  */
 
 export type Member = {
@@ -103,12 +105,18 @@ export const MEMBER_TEAMS: MemberGroup[] = [
   },
 ];
 
-/** Cari member berdasarkan tim + nickname. */
+/**
+ * Cari member berdasarkan tim + nickname.
+ *
+ * `groups` boleh di-pass agar pencarian memakai katalog dari database
+ * (halaman utama) alih-alih seed statis. Default: seed `MEMBER_TEAMS`.
+ */
 export function findMember(
   team: string,
   nickname: string,
+  groups: MemberGroup[] = MEMBER_TEAMS,
 ): Member | null {
-  const group = MEMBER_TEAMS.find((g) => g.team === team);
+  const group = groups.find((g) => g.team === team);
   if (!group) return null;
   return group.members.find((m) => m.nickname === nickname) ?? null;
 }

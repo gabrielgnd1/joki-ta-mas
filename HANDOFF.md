@@ -32,6 +32,7 @@ Sudah selesai dan sudah diuji end-to-end:
 - Submit → pesanan tersimpan di `service_orders` → jendela WhatsApp ke admin terbuka berisi rincian + kode pesanan.
 - Panel admin baru (tema rose/slate): daftar pesanan, filter status, pencarian, statistik, detail pesanan (tabel item + kredensial akun dengan tombol tampil/salin), catatan internal, verifikasi status, ubah status manual.
 - Pengaturan: buka/tutup pemesanan, buka/tutup jenis akun (OFC / Non-OFC), pengumuman, nama situs, kontak WA.
+- Katalog member di admin (`/admin/katalog`): edit harga 2S / MnG 1–4 / MnG 5–20 untuk semua member, tersimpan di tabel `member_catalog`, langsung berlaku tanpa deploy.
 - Manajemen tim (tambah admin/verifikator, aktif/nonaktif, reset password).
 - Halaman lama yang dihapus: `/pricelist`, `/admin/event`, wizard 3 langkah, ilustrasi seatmap, header/footer/nav lama.
 
@@ -114,10 +115,11 @@ Form pesanannya sendiri ada di `src/components/joki-order-form.tsx` (client comp
 | `/admin/login` | `src/app/admin/login/page.tsx` | publik | Form login |
 | `/admin` | `src/app/admin/(panel)/page.tsx` | admin + verifier | Daftar pesanan, filter, pencarian, statistik |
 | `/admin/orders/[id]` | `src/app/admin/(panel)/orders/[id]/page.tsx` | admin + verifier | Detail, kredensial akun, catatan, ubah status |
+| `/admin/katalog` | `src/app/admin/(panel)/katalog/page.tsx` | **admin saja** | Edit harga member (2S, MnG 1–4, MnG 5–20) |
 | `/admin/settings` | `src/app/admin/(panel)/settings/page.tsx` | **admin saja** | Pemesanan, jenis akun, pengumuman, kontak |
 | `/admin/team` | `src/app/admin/(panel)/team/page.tsx` | **admin saja** | Kelola akun tim |
 
-Navigasi panel: **Pesanan**, **Pengaturan** (admin saja), **Tim** (admin saja) — `src/components/admin-nav.tsx`.
+Navigasi panel: **Pesanan**, **Katalog** (admin saja), **Pengaturan** (admin saja), **Tim** (admin saja) — `src/components/admin-nav.tsx`.
 
 ### API routes
 
@@ -175,15 +177,16 @@ Definisi label ada di `src/lib/types.ts` (`STATUS_LABEL`, `STATUS_BADGE`).
 
 Jangan ubah tanpa sadar, karena ini menyangkut uang dan data pribadi:
 
-1. **Harga selalu dihitung ulang di server** dari katalog `src/lib/members.ts`. Client hanya mengirim `team`, `nickname`, `serviceType`, `qty`. Jangan pernah percaya `subtotal`/`total` dari client.
-2. **2S selalu 1 tiket** per item (field qty dinonaktifkan di form).
-3. **MnG memakai tarif paket flat**, tidak dikalikan jumlah tiket: qty 1–4 pakai `mngLow`, qty 5–20 pakai `mngHigh`. Batas ketat 1–20 (dibatasi juga oleh Zod & server).
-4. **Keranjang maksimal 30 item** per pesanan (Zod `.max(30)`).
-5. **Gate jenis akun:** settings `ticket_ofc_enabled` = pemesanan akun OFC, `ticket_general_enabled` = Non-OFC. Nonaktifkan salah satu untuk menutup jenis tersebut (API membalas 403).
-6. **Tidak ada verifikasi otomatis.** Status hanya berubah lewat tombol/dropdown admin (`updateOrderStatusAction`).
-7. **Kode pesanan** memakai alfabet tanpa karakter ambigu (`ABCDEFGHJKLMNPQRSTUVWXYZ23456789`), format `JTM-` + 6 karakter, selalu disertakan di pesan WhatsApp supaya admin bisa mencocokkan chat → baris DB.
-8. **Kredensial akun JKT48 pemesan** (email + password) disimpan dan ditampilkan hanya di panel admin, lengkap dengan peringatan. Jangan pernah menampilkannya di halaman publik.
-9. **Tidak ada field WhatsApp pemesan** — keputusan desain. Jangan menambahkannya tanpa membahas ulang.
+1. **Harga selalu dihitung ulang di server** dari katalog di database (tabel `member_catalog`, dibaca lewat `src/lib/member-catalog.ts`). Client hanya mengirim `team`, `nickname`, `serviceType`, `qty`. Jangan pernah percaya `subtotal`/`total` dari client.
+2. **Roster member vs harga:** daftar member (tim, nickname, nama lengkap) berasal dari seed `MEMBER_TEAMS` di `src/lib/members.ts` dan disinkronkan ke database saat start (`INSERT OR IGNORE` — tidak menimpa harga editan admin). **Harga hanya diubah lewat `/admin/katalog`**, bukan lewat kode, supaya tidak perlu deploy.
+3. **2S selalu 1 tiket** per item (field qty dinonaktifkan di form).
+4. **MnG memakai tarif paket flat**, tidak dikalikan jumlah tiket: qty 1–4 pakai `mngLow`, qty 5–20 pakai `mngHigh`. Batas ketat 1–20 (dibatasi juga oleh Zod & server).
+5. **Keranjang maksimal 30 item** per pesanan (Zod `.max(30)`).
+6. **Gate jenis akun:** settings `ticket_ofc_enabled` = pemesanan akun OFC, `ticket_general_enabled` = Non-OFC. Nonaktifkan salah satu untuk menutup jenis tersebut (API membalas 403).
+7. **Tidak ada verifikasi otomatis.** Status hanya berubah lewat tombol/dropdown admin (`updateOrderStatusAction`).
+8. **Kode pesanan** memakai alfabet tanpa karakter ambigu (`ABCDEFGHJKLMNPQRSTUVWXYZ23456789`), format `JTM-` + 6 karakter, selalu disertakan di pesan WhatsApp supaya admin bisa mencocokkan chat → baris DB.
+9. **Kredensial akun JKT48 pemesan** (email + password) disimpan dan ditampilkan hanya di panel admin, lengkap dengan peringatan. Jangan pernah menampilkannya di halaman publik.
+10. **Tidak ada field WhatsApp pemesan** — keputusan desain. Jangan menambahkannya tanpa membahas ulang.
 
 ---
 
@@ -202,6 +205,7 @@ jokitamas/
 │  │  │     ├─ layout.tsx
 │  │  │     ├─ page.tsx          # Dashboard/daftar pesanan
 │  │  │     ├─ orders/[id]/page.tsx
+│  │  │     ├─ katalog/page.tsx  # Editor harga member
 │  │  │     ├─ settings/page.tsx
 │  │  │     └─ team/page.tsx
 │  │  ├─ actions/                # Server Actions
@@ -216,7 +220,8 @@ jokitamas/
 │  │  └─ status-badge.tsx
 │  └─ lib/
 │     ├─ db.ts                   # Koneksi SQLite, skema, seed awal
-│     ├─ members.ts              # KATALOG member + tarif + calculateItemCost
+│     ├─ members.ts              # Roster SEED member + tipe + calculateItemCost
+│     ├─ member-catalog.ts       # Baca katalog & harga dari tabel member_catalog
 │     ├─ service-orders.ts       # Query pesanan (service_orders), statistik, create
 │     ├─ wa-message.ts           # Susun URL wa.me berisi rincian pesanan
 │     ├─ auth.ts                 # Sesi login (cookie httpOnly + tabel sessions)
@@ -248,6 +253,7 @@ Database SQLite/libSQL diakses lewat `@libsql/client`. Lokal memakai file `data/
 | `users` | aktif | Akun admin/verifikator (`role`: `admin` / `verifier`, `active` 0/1) |
 | `sessions` | aktif | Sesi login; menyimpan `token_hash`, bukan token asli |
 | `service_orders` | aktif | **Semua pesanan baru** (lihat di bawah) |
+| `member_catalog` | aktif | Katalog & harga member (diedit lewat `/admin/katalog`) |
 | `settings` | aktif | Key-value pengaturan situs |
 | `orders` | **legacy** | Pesanan war tiket lama — tidak dipakai aplikasi, data tidak dihapus |
 | `events`, `sections` | **legacy** | Event/section war tiket lama — tidak dipakai UI (seed masih membuat 1 event contoh, tidak berbahaya) |
@@ -264,6 +270,17 @@ Database SQLite/libSQL diakses lewat `@libsql/client`. Lokal memakai file `data/
 - `internal_note` — catatan admin, tidak dilihat pemesan.
 - `created_at`, `updated_at` — ISO string.
 
+### Kolom `member_catalog`
+
+- `id` — primary key (dipakai nama field form `/admin/katalog`).
+- `team`, `nickname`, `full_name` — identitas member (unik per `team + nickname`).
+- `price_2s` — tarif 2-Shot (per item, selalu 1 tiket).
+- `mng_low` — tarif paket MnG 1–4 tiket (flat).
+- `mng_high` — tarif paket MnG 5–20 tiket (flat).
+- `sort` — urutan tampil di form (tim → member).
+
+Roster member berasal dari seed `MEMBER_TEAMS` (`src/lib/members.ts`) dan disinkronkan dengan `INSERT OR IGNORE` setiap start, jadi harga yang sudah diedit admin **tidak tertimpa** dan member baru dari kode otomatis masuk.
+
 ### Settings keys
 
 `site_name`, `site_tagline`, `wa_number`, `wa_number_2` (opsional), `x_username`, `orders_open` (`"1"`/`"0"`), `ticket_ofc_enabled` (`"1"`/`"0"`), `ticket_general_enabled` (`"1"`/`"0"`), `announcement`.
@@ -278,6 +295,7 @@ Saat database kosong, otomatis dibuat:
 
 - 1 akun admin dari env `ADMIN_*`.
 - Settings default.
+- 58 baris `member_catalog` (seed dari `MEMBER_TEAMS`, 4 tim).
 - 1 event + 7 section contoh (warisan versi lama; tidak dipakai halaman mana pun).
 
 ### Backup & reset
@@ -404,7 +422,7 @@ Prioritas tinggi:
 
 1. **Audit log status** — tabel `order_logs` (order_id, actor, from_status, to_status, note, created_at). Ditampilkan di detail pesanan.
 2. **Notifikasi WhatsApp** — tombol "Kirim update ke pemesan" yang membuka `wa.me` dengan template pesan status. Murah, tanpa API berbayar. (Nomor pemesan tidak tersimpan — perlu keputusan: minta nomor, atau kirim update ke admin saja.)
-3. **Katalog member di database** — pindahkan `members.ts` ke tabel + halaman admin supaya harga bisa diubah tanpa deploy.
+3. **Katalog member di database** — ~~pindahkan `members.ts` ke tabel + halaman admin~~ **selesai** (`member_catalog` + `/admin/katalog`). Sisa ide: tambah/hapus member & ubah nama dari admin (saat ini roster dari kode).
 4. **Rate limit persisten** — pindahkan `src/lib/rate-limit.ts` ke DB/Redis.
 5. **Export CSV** — daftar pesanan untuk rekap fee & rekap data tiket.
 
@@ -444,7 +462,7 @@ Teknis:
 | --- | --- |
 | Teks/judul halaman utama | `src/app/page.tsx`, `src/components/joki-order-form.tsx` |
 | Field & langkah form pesanan | `src/components/joki-order-form.tsx` |
-| Harga/katalog member | `src/lib/members.ts` |
+| Harga/katalog member | `/admin/katalog` (harga) · `src/lib/members.ts` (roster/seed) |
 | Validasi field | `src/lib/validation.ts` |
 | Isi pesan WhatsApp | `src/lib/wa-message.ts` |
 | Teks status & warna badge | `src/lib/types.ts` |

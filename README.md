@@ -57,6 +57,7 @@ Lalu buka http://localhost:3000/admin
 | `/` | Form pesanan 2S / MnG (keranjang multi-member → WhatsApp) |
 | `/admin` | Daftar pesanan, filter status, pencarian, statistik |
 | `/admin/orders/[id]` | Detail pesanan, kredensial akun, verifikasi status |
+| `/admin/katalog` | Edit harga member (2S, MnG 1–4, MnG 5–20) — langsung aktif |
 | `/admin/settings` | Buka/tutup pemesanan & jenis akun, pengumuman, kontak WA |
 | `/admin/team` | Tambah admin/verifikator, aktif/nonaktif, reset password |
 | `/admin/login` | Login admin |
@@ -75,8 +76,9 @@ Halaman `/pricelist` dan `/admin/event` dari versi lama **sudah dihapus**.
 5. Admin memverifikasi (Pembayaran Valid), menambahkan catatan internal, dan
    menandai **Selesai** — semuanya manual, tidak ada verifikasi otomatis.
 
-Harga selalu dihitung ulang di server dari katalog member (`src/lib/members.ts`),
-bukan dari client.
+Harga selalu dihitung ulang di server dari katalog member di database
+(tabel `member_catalog`). Harga bisa diedit sendiri lewat **`/admin/katalog`**
+tanpa deploy; daftar member (roster) berasal dari `src/lib/members.ts`.
 
 ## Database
 
@@ -89,10 +91,10 @@ TURSO_DATABASE_URL=libsql://...
 TURSO_AUTH_TOKEN=...
 ```
 
-Skema dan data awal (admin + settings) dibuat otomatis saat request pertama.
-Tabel pesanan aktif: **`service_orders`**. Tabel lama (`orders`, `events`,
-`sections`) masih ada di skema agar data lama tidak hilang, tetapi tidak dipakai
-aplikasi lagi.
+Skema dan data awal (admin + settings + katalog member) dibuat otomatis saat
+request pertama. Tabel pesanan aktif: **`service_orders`**; harga member:
+**`member_catalog`**. Tabel lama (`orders`, `events`, `sections`) masih ada di
+skema agar data lama tidak hilang, tetapi tidak dipakai aplikasi lagi.
 
 Backup database Turso lewat dashboard Turso atau:
 

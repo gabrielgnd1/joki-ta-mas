@@ -1,5 +1,6 @@
 import { getDb } from "./db";
 import { calculateItemCost, findMember } from "./members";
+import { getMemberCatalog } from "./member-catalog";
 import { generateOrderCode } from "./password";
 import type { OrderItem, ServiceOrderRow, ServiceType } from "./types";
 import type { JokiOrderInput } from "./validation";
@@ -103,13 +104,22 @@ export async function getServiceStats(): Promise<{
  */
 export async function createServiceOrder(
   input: JokiOrderInput,
-): Promise<{ code: string; total: number; itemCount: number; ticketCount: number }> {
+): Promise<{
+  code: string;
+  total: number;
+  itemCount: number;
+  ticketCount: number;
+  items: OrderItem[];
+}> {
   const items: OrderItem[] = [];
   let total = 0;
   let ticketCount = 0;
 
+  // Harga dari database (bisa diedit lewat /admin/katalog).
+  const catalog = await getMemberCatalog();
+
   for (const line of input.items) {
-    const member = findMember(line.team, line.nickname);
+    const member = findMember(line.team, line.nickname, catalog);
     if (!member) {
       throw new OrderError(`Member "${line.nickname}" tidak ditemukan.`);
     }
@@ -178,7 +188,7 @@ export async function createServiceOrder(
           now,
         ],
       });
-      return { code, total, itemCount: items.length, ticketCount };
+      return { code, total, itemCount: items.length, ticketCount, items };
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
       if (!message.includes("UNIQUE") || attempt === 4) throw error;

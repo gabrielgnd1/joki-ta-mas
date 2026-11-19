@@ -65,7 +65,7 @@ export function JokiOrderForm({
   const selectedMember = useMemo(() => {
     if (!memberKeySelected) return null;
     const [team, nickname] = memberKeySelected.split("::");
-    return findMember(team, nickname);
+    return findMember(team, nickname, members);
   }, [memberKeySelected, members]);
 
   const filteredTeams = useMemo(
@@ -86,7 +86,7 @@ export function JokiOrderForm({
 
   const totals = cart.reduce(
     (acc, line) => {
-      const member = findMember(line.team, line.nickname);
+      const member = findMember(line.team, line.nickname, members);
       if (!member) return acc;
       const { subtotal } = calculateItemCost(
         member,
@@ -198,6 +198,7 @@ export function JokiOrderForm({
             error?: string;
             code?: string;
             total?: number;
+            items?: WaCartItem[];
           }
         | null;
 
@@ -207,6 +208,8 @@ export function JokiOrderForm({
         return;
       }
 
+      // Pakai item hasil hitung server (data.items) supaya pesan WhatsApp
+      // selalu sama dengan total yang tersimpan di panel admin.
       const waUrl = buildOrderWhatsAppUrl({
         phoneNumber: waNumber,
         orderCode: data.code,
@@ -214,7 +217,7 @@ export function JokiOrderForm({
         accountType,
         jktEmail: jktEmail.trim(),
         jktPassword,
-        items: cart as WaCartItem[],
+        items: data.items ?? [],
       });
 
       if (waWindow) {
@@ -450,7 +453,7 @@ export function JokiOrderForm({
           ) : (
             <div id="cartList" className="cart-list">
               {cart.map((line) => {
-                const member = findMember(line.team, line.nickname);
+                const member = findMember(line.team, line.nickname, members);
                 const { subtotal, detailText } = member
                   ? calculateItemCost(member, line.serviceType, line.qty)
                   : { subtotal: 0, detailText: "" };

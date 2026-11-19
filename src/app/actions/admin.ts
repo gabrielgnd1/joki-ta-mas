@@ -89,6 +89,65 @@ export async function saveSettingsAction(formData: FormData) {
   revalidatePath("/");
 }
 
+/**
+ * Simpan harga katalog member dari /admin/katalog.
+ * Field memakai nama `2s:{id}`, `l4:{id}` (MnG 1–4), `h20:{id}` (MnG 5–20).
+ */
+export async function saveMemberCatalogAction(formData: FormData) {
+  await requireAdmin();
+
+  type Draft = { price2s?: number; mngLow?: number; mngHigh?: number };
+  const drafts = new Map<number, Draft>();
+
+  for (const [key, value] of formData.entries()) {
+    const match = /^(2s|l4|h20):(\d+)$/.exec(key);
+    if (!match) continue;
+
+    const id = Number(match[2]);
+    const price = Number(value);
+    if (
+      value === "" ||
+      !Number.isInteger(price) ||
+      price < 0 ||
+      price > 10_000_000
+    ) {
+      redirect("/admin/katalog?error=invalid");
+    }
+
+    const draft = drafts.get(id) ?? {};
+    if (match[1] === "2s") draft.price2s = price;
+    else if (match[1] === "l4") draft.mngLow = price;
+    else draft.mngHigh = price;
+    drafts.set(id, draft);
+  }
+
+  if (drafts.size === 0) {
+    redirect("/admin/katalog?error=invalid");
+  }
+
+  const statements: Array<{ sql: string; args: Array<number> }> = [];
+  for (const [id, draft] of drafts) {
+    if (
+      draft.price2s === undefined ||
+      draft.mngLow === undefined ||
+      draft.mngHigh === undefined
+    ) {
+      redirect("/admin/katalog?error=invalid");
+    }
+    statements.push({
+      sql: "UPDATE member_catalog SET price_2s = ?, mng_low = ?, mng_high = ? WHERE id = ?",
+      args: [draft.price2s, draft.mngLow, draft.mngHigh, id],
+    });
+  }
+
+  const db = await getDb();
+  await db.batch(statements, "write");
+
+  revalidatePath("/admin/katalog");
+  revalidatePath("/");
+  redirect("/admin/katalog?saved=1");
+}
+
 export async function addUserAction(formData: FormData) {
   await requireAdmin();
 

@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { JokiOrderForm } from "@/components/joki-order-form";
-import { MEMBER_TEAMS } from "@/lib/members";
+import { getMemberCatalog } from "@/lib/member-catalog";
 import { getSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const settings = await getSettings();
+  const [settings, members] = await Promise.all([
+    getSettings(),
+    getMemberCatalog(),
+  ]);
   const waNumber = settings.wa_number.replace(/[^0-9]/g, "");
 
   return (
@@ -19,7 +22,7 @@ export default async function HomePage() {
 
       <main className="flex-1">
         <JokiOrderForm
-          members={MEMBER_TEAMS}
+          members={members}
           waNumber={waNumber}
           ordersOpen={settings.orders_open === "1"}
           ofcEnabled={settings.ticket_ofc_enabled !== "0"}

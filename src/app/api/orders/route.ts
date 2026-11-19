@@ -76,11 +76,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { code, total, itemCount, ticketCount } = await createServiceOrder(
-      parsed.data,
-    );
+    const { code, total, itemCount, ticketCount, items } =
+      await createServiceOrder(parsed.data);
     return NextResponse.json(
-      { ok: true, code, total, itemCount, ticketCount },
+      { ok: true, code, total, itemCount, ticketCount, items },
       { status: 201 },
     );
   } catch (error) {
